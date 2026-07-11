@@ -1,0 +1,123 @@
+/* =========================================================================
+   MeshFlow X — Production Liquid Glass Design System
+   ========================================================================= */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#060607] text-zinc-300 font-sans antialiased overflow-x-hidden selection:bg-blue-500/30 selection:text-blue-200;
+  }
+}
+
+@layer utilities {
+  /* The Official MeshFlow Liquid Glass Utilities */
+  .glass-panel {
+    @apply bg-zinc-950/80 backdrop-blur-xl border border-white/10 shadow-2xl;
+  }
+  
+  .glass-header {
+    @apply bg-zinc-950/90 backdrop-blur-md border-b border-white/5;
+  }
+
+  /* OS Canvas Background */
+  .mesh-grid-bg {
+    background-image: radial-gradient(#27272a 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Scrollbar Hider for specific UI panels */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* =========================================================================
+   Premium OS Scrollbars
+   ========================================================================= */
+::-webkit-scrollbar { 
+    width: 6px; 
+    height: 6px; 
+}
+::-webkit-scrollbar-track { 
+    background: transparent; 
+}
+::-webkit-scrollbar-thumb { 
+    background: rgba(255, 255, 255, 0.1); 
+    border-radius: 10px; 
+}
+::-webkit-scrollbar-thumb:hover { 
+    background: rgba(255, 255, 255, 0.2); 
+}
+
+/* =========================================================================
+   Global OS Animations
+   ========================================================================= */
+.animate-float { 
+    animation: float 6s ease-in-out infinite; 
+}
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
+
+/* =========================================================================
+   Builder Canvas Specific Polish (Edges & Nodes)
+   ========================================================================= */
+.node-card { 
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.1s ease; 
+}
+.node-card:active { 
+    transform: scale(0.98); 
+}
+
+.builder-edge { 
+    fill: none; 
+    stroke: #3f3f46; 
+    stroke-width: 2; 
+    transition: stroke 0.3s ease; 
+}
+
+.builder-edge.temp-edge { 
+    stroke: #3b82f6; 
+    stroke-dasharray: 4 4; 
+    animation: march 1s linear infinite; 
+}
+
+@keyframes march { 
+    to { stroke-dashoffset: -8; } 
+}
+
+/* --- MeshFlow X: Production UX Overrides --- */
+
+/* 1. Purge Dead / Conflicting UI Elements */
+#builder-palette, .palette-container { display: none !important; }
+#btn-ready-build, .btn-ready-build { display: none !important; }
+
+/* 2. Hardware Acceleration for Liquid Glass (Fixes Lag) */
+.glass-panel, #liquid-modal {
+    transform: translateZ(0);
+    will-change: transform, opacity;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+/* 3. Modal Focus Trap / Prevent Background Scroll */
+body.modal-open {
+    overflow: hidden !important;
+    touch-action: none;
+}
+
+/* 4. Canvas Expansion (Reclaiming Palette Space) */
+main.flex-1.relative.overflow-hidden {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-grow: 1 !important;
+}

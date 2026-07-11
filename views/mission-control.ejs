@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <%- include('partials/head') %>
+  <script src="/js/api-services.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+  <title>Mission Control | MeshFlow X</title>
+  <style>
+    :root {
+      --bg-black: #000000;
+      --panel-bg: rgba(10, 10, 12, 0.6);
+      --border-light: rgba(255, 255, 255, 0.08);
+    }
+    body { background-color: var(--bg-black); color: #ededed; font-family: 'Inter', sans-serif; }
+    
+    .glass-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border: 1px solid var(--border-light);
+      box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .mesh-grid-bg {
+      background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* Cinematic Glows */
+    .glow-bg {
+      position: absolute; width: 600px; height: 600px; filter: blur(120px); opacity: 0.15; pointer-events: none; border-radius: 50%;
+    }
+    .glow-blue { top: -100px; left: -100px; background: #3b82f6; }
+    .glow-purple { bottom: -200px; right: -100px; background: #8b5cf6; }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+
+    /* Self-Healing Flash Animation */
+    @keyframes heal-flash {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.8); }
+      50% { box-shadow: 0 0 40px 10px rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.5); }
+      100% { box-shadow: 0 0 20px 0px rgba(34, 197, 94, 0.1); border-color: var(--border-light); }
+    }
+    .animate-heal { animation: heal-flash 2s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+    /* Intelligence Drawer */
+    #intelligence-drawer {
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #intelligence-drawer.open { transform: translateX(0); }
+    
+    /* Progress Bars */
+    .score-bar-fill { transition: width 1s cubic-bezier(0.16, 1, 0.3, 1); }
+
+    /* Output Stream Box */
+    .water-output {
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        box-shadow: inset 0 0 30px rgba(59, 130, 246, 0.05);
+    }
+  </style>
+</head>
+<body class="flex overflow-hidden relative h-screen w-screen">
+
+<!-- Background Ambience -->
+<div class="fixed inset-0 z-0 pointer-events-none">
+  <div class="absolute inset-0 bg-[#040405]"></div>
+  <div class="absolute inset-0 mesh-grid-bg mask-image-[linear-gradient(to_bottom,black,transparent)]"></div>
+  <div class="glow-bg glow-blue"></div>
+  <div class="glow-bg glow-purple"></div>
+</div>
+
+<%- include('partials/sidebar', { currentPath: '/mission-control' }) %>
+
+<div class="flex flex-1 z-10 overflow-hidden md:pl-60 h-full w-full">
+    
+    <!-- MAIN COMMAND CANVAS -->
+    <main class="flex-1 relative flex flex-col overflow-y-auto px-6 md:px-12 py-10 custom-scrollbar h-full w-full">
+        
+        <div class="max-w-7xl mx-auto w-full">
+            <!-- Execution Header -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6 glass-panel p-8 rounded-[24px]">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div id="mc-pulse" class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_15px_rgba(59,130,246,0.8)]"></div>
+                        <p class="text-[11px] text-blue-400 uppercase tracking-widest font-mono font-bold" id="mc-status">Establishing Secure Uplink</p>
+                    </div>
+                    <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-white drop-shadow-lg" id="mc-title">Initializing OS</h1>
+                </div>
+                
+                <div class="flex flex-wrap items-end justify-start md:justify-end gap-6 md:gap-10">
+                    <div class="text-left md:text-right hidden sm:block">
+                        <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-1">Compute Latency</p>
+                        <p class="text-3xl font-mono text-zinc-300 font-bold" id="metric-latency">0ms</p>
+                    </div>
+                    <div class="text-left md:text-right hidden sm:block">
+                        <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-1">Network Cost</p>
+                        <p class="text-3xl font-mono text-zinc-300 font-bold" id="metric-cost">$0.0000</p>
+                    </div>
+                    <div class="text-left md:text-right hidden sm:block">
+                        <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-1">OS Progress</p>
+                        <p class="text-3xl font-mono text-blue-400 font-bold" id="mc-progress">0%</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 pb-12">
+                
+                <!-- LEFT: Nodes Pipeline -->
+                <div class="xl:col-span-2 space-y-6" id="nodes-container">
+                    <!-- Nodes injected here via JS -->
+                </div>
+
+                <!-- RIGHT: Final Report Panel & Intelligence Feed -->
+                <div class="space-y-6 self-start sticky top-0 w-full">
+                    
+                    <!-- Counterfactual Dashboard triggers here -->
+                    <div id="final-output-card" class="w-full transition-all duration-700"></div>
+                    
+                    <!-- Live Intelligence Feed -->
+                    <aside class="w-full border border-white/5 bg-black/60 backdrop-blur-3xl flex flex-col rounded-[24px] overflow-hidden shadow-2xl relative">
+                        <div class="p-6 border-b border-white/5 bg-white/[0.02]">
+                            <h3 class="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="activity" class="w-4 h-4 text-blue-400"></i> OS Intelligence Feed
+                            </h3>
+                        </div>
+                        <div id="intelligence-feed" class="overflow-y-auto p-6 space-y-6 relative custom-scrollbar max-h-[60vh] min-h-[300px]" role="log" aria-live="polite">
+                            <div class="text-xs text-zinc-500 flex items-center gap-2 font-mono">
+                                <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Awaiting telemetry...
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- OS INTELLIGENCE DRAWER (MODEL DEBATE) -->
+<div id="intelligence-drawer" class="fixed top-0 right-0 h-full w-full sm:w-[480px] glass-panel border-l border-white/10 z-[100] flex flex-col shadow-[-30px_0_80px_rgba(0,0,0,0.8)]">
+    <div class="p-6 md:p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-b from-white/[0.05] to-transparent">
+        <div>
+            <p class="text-[10px] text-blue-400 font-mono uppercase tracking-widest mb-1.5">Model Debate Matrix</p>
+            <h2 class="text-xl font-bold text-white tracking-tight" id="drawer-title">Node Intelligence</h2>
+        </div>
+        <button onclick="closeIntelligenceDrawer()" class="p-2 hover:bg-white/10 rounded-xl transition-colors text-zinc-400 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar" id="drawer-content">
+        <!-- Debate contents injected via JS -->
+    </div>
+</div>
+
+<!-- ==========================================
+     THE FINAL REPORT MODAL (REDESIGNED TABS)
+     ========================================== -->
+<div id="liquid-modal-backdrop" class="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-400 ease-out flex items-center justify-center p-4 md:p-[8vh] md:px-[12vw]">
+    <div id="liquid-modal" class="w-full max-w-6xl h-full bg-[#0a0a0c]/95 border border-white/10 rounded-[28px] shadow-2xl flex flex-col scale-95 transition-transform duration-400 overflow-hidden relative">
+        <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none"></div>
+        <header class="px-6 md:px-8 pt-8 pb-5 flex flex-col md:flex-row justify-between items-start relative z-10 shrink-0 gap-4">
+            <div class="flex gap-5 items-center">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-zinc-800 to-black border border-white/10 flex items-center justify-center shadow-inner relative overflow-hidden shrink-0 hidden sm:flex">
+                    <div class="absolute inset-0 bg-white/5 opacity-50"></div>
+                    <i data-lucide="layers" class="w-6 h-6 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]"></i>
+                </div>
+                <div class="flex flex-col justify-center">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <span class="text-[9px] font-mono font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded-md border border-green-500/20 flex items-center gap-1 uppercase tracking-widest shadow-[0_0_10px_rgba(74,222,128,0.1)]">
+                            <i data-lucide="check-circle-2" class="w-3 h-3"></i> Execution Completed
+                        </span>
+                        <span class="text-[10px] text-zinc-500 font-mono" id="modal-timestamp"></span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-white tracking-tight" id="modal-title">Final OS Report</h1>
+                </div>
+            </div>
+            <div class="flex gap-4 md:gap-8 text-right items-center pt-2">
+                <div class="flex flex-col items-end">
+                    <p class="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Confidence</p>
+                    <p class="text-base md:text-lg font-mono font-bold text-green-400 drop-shadow-[0_0_8px_rgba(74,222,128,0.2)]" id="modal-confidence">--</p>
+                </div>
+                <div class="w-px h-8 bg-white/10"></div>
+                <div class="flex flex-col items-end">
+                    <p class="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Total Cost</p>
+                    <p class="text-base md:text-lg font-mono font-bold text-blue-400" id="modal-cost">--</p>
+                </div>
+                <div class="w-px h-8 bg-white/10 hidden sm:block"></div>
+                <div class="flex flex-col items-end hidden sm:flex">
+                    <p class="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Processing Time</p>
+                    <p class="text-base md:text-lg font-mono font-bold text-zinc-200" id="modal-latency">--</p>
+                </div>
+            </div>
+        </header>
+        
+        <!-- REDESIGNED TABS (From Code 2) -->
+        <div class="px-8 border-b border-white/5 flex gap-6 overflow-x-auto hide-scrollbar bg-black/20 z-10 shrink-0">
+            <button onclick="switchModalTab('overview')" id="tab-btn-overview" class="modal-tab active py-4 text-[11px] font-bold text-white border-b-2 border-white transition-all whitespace-nowrap">Overview</button>
+            <button onclick="switchModalTab('detailed')" id="tab-btn-detailed" class="modal-tab py-4 text-[11px] font-bold text-zinc-500 border-b-2 border-transparent hover:text-zinc-300 transition-all whitespace-nowrap">Synthesized Report</button>
+            <button onclick="switchModalTab('flow')" id="tab-btn-flow" class="modal-tab py-4 text-[11px] font-bold text-blue-400 border-b-2 border-transparent hover:text-blue-300 transition-all whitespace-nowrap">Pipeline Output Flow</button>
+            <button onclick="switchModalTab('finalout')" id="tab-btn-finalout" class="modal-tab py-4 text-[11px] font-bold text-purple-400 border-b-2 border-transparent hover:text-purple-300 transition-all whitespace-nowrap">Final AI Output</button>
+            <button onclick="switchModalTab('stats')" id="tab-btn-stats" class="modal-tab py-4 text-[11px] font-bold text-zinc-500 border-b-2 border-transparent hover:text-zinc-300 transition-all whitespace-nowrap">Execution Statistics</button>
+            <button onclick="switchModalTab('models')" id="tab-btn-models" class="modal-tab py-4 text-[11px] font-bold text-zinc-500 border-b-2 border-transparent hover:text-zinc-300 transition-all whitespace-nowrap">Models Used</button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 md:p-10 relative z-10 custom-scrollbar" id="modal-content-area">
+            
+            <div id="modal-tab-overview" class="tab-pane block animate-in fade-in duration-300">
+                <div class="max-w-3xl">
+                    <h2 class="text-xl font-bold text-white mb-4">Workflow Execution Overview</h2>
+                    <div id="ext-overview" class="text-sm text-zinc-400 leading-relaxed mb-8 prose prose-invert prose-zinc prose-sm">MeshFlow OS successfully executed the intelligent DAG. The system dynamically routed tasks across the model registry to optimize for required capabilities, cost, and latency.</div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="overview-grid"></div>
+                </div>
+            </div>
+
+            <div id="modal-tab-detailed" class="tab-pane hidden animate-in fade-in duration-300">
+                <div id="markdown-container" class="prose prose-invert prose-sm max-w-4xl font-sans prose-headings:font-bold prose-headings:tracking-tight prose-a:text-blue-400 prose-pre:bg-[#060608] prose-pre:border prose-pre:border-white/10 prose-pre:shadow-inner prose-img:rounded-xl"></div>
+            </div>
+
+            <!-- REDESIGNED: Pipeline Flow Tab -->
+            <div id="modal-tab-flow" class="tab-pane hidden animate-in fade-in duration-300">
+                <div class="max-w-4xl">
+                    <h2 class="text-xl font-bold text-white mb-2">Knowledge Progression</h2>
+                    <p class="text-xs text-zinc-400 mb-8">Trace the exact payload handoffs moving through the directed acyclic graph (DAG).</p>
+                    <div id="ext-pipeline-flow" class="space-y-4 border-l-2 border-white/10 ml-4 pl-6"></div>
+                </div>
+            </div>
+            
+            <!-- REDESIGNED: Final AI Output Tab -->
+            <div id="modal-tab-finalout" class="tab-pane hidden animate-in fade-in duration-300">
+                <div class="max-w-4xl">
+                    <h2 class="text-xl font-bold text-white mb-2">Pre-Synthesis Output</h2>
+                    <p class="text-xs text-zinc-400 mb-6">The raw output generated by the final execution node before entering the Arbitrator summarization step.</p>
+                    <div id="ext-final-ai-output" class="bg-black border border-white/10 p-6 rounded-xl text-xs font-mono text-green-400 whitespace-pre-wrap shadow-inner overflow-x-auto"></div>
+                </div>
+            </div>
+
+            <div id="modal-tab-stats" class="tab-pane hidden animate-in fade-in duration-300">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6" id="stats-grid"></div>
+            </div>
+            
+            <div id="modal-tab-models" class="tab-pane hidden animate-in fade-in duration-300">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5" id="models-grid"></div>
+            </div>
+
+        </div>
+
+        <footer class="p-4 px-6 md:px-8 border-t border-white/5 bg-black/50 backdrop-blur-2xl flex flex-col md:flex-row justify-between items-center relative z-10 shrink-0 gap-4">
+            <div class="flex flex-wrap gap-2 justify-center">
+                <button onclick="copyReport()" class="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-[11px] font-bold rounded-xl border border-white/5 transition-all text-zinc-300"><i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Markdown</button>
+                <button onclick="downloadPDF()" class="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-[11px] font-bold rounded-xl border border-white/5 transition-all text-zinc-300"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Export PDF</button>
+            </div>
+            <div class="flex gap-3 items-center w-full md:w-auto justify-center">
+                <button onclick="window.location.href='/builder'" class="flex items-center gap-2 px-6 py-2.5 text-[11px] font-bold rounded-xl transition-all text-blue-400 hover:bg-blue-500/10 border border-blue-500/30"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Return to Architect</button>
+                <button onclick="closeFinalReportModal()" class="px-8 py-2.5 bg-white text-black hover:bg-zinc-200 text-[11px] font-bold rounded-xl transition-all shadow-[0_0_24px_rgba(255,255,255,0.2)] w-full md:w-auto">Close Report</button>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<script>
+lucide.createIcons();
+let pollTimer = null;
+let globalState = null;
+let isPolling = false;
+let displayedEventsCount = 0;
+let reportOpened = false;
+
+const safeText = (val) => {
+    if (val === null || val === undefined) return '';
+    return String(val).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+};
+
+const parseHTML = (md) => {
+    if (!md) return '';
+    const raw = typeof marked.parse === 'function' ? marked.parse(md) : marked(md);
+    return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(raw) : raw;
+};
+
+// Error mapping strictly to backend codes
+// In views/mission-control.ejs, update the formatErrorCode map:
+
+const formatErrorCode = (code) => {
+    if(!code) return "Execution Failed";
+    const map = {
+        'VALIDATION_FAILED': 'Validation Failed',
+        'DAG_INVALID': 'Dependency Failed',
+        'SYNTHESIS_SKIPPED': 'No Output Generated',
+        'NODE_FAILED': 'Model Failed',
+        'CANCELLED': 'Execution Cancelled',
+        'DOCUMENT_NOT_FOUND': 'Document Upload Missing',
+        'DOCUMENT_INCOMPLETE': 'Document Payload Too Small',
+        'FILE_PARSING_FAILED': 'Binary Parsing Failed',
+        'TIMEOUT': 'Mesh Timeout'
+    };
+    return map[code] || code;
+};
+
+async function startPolling(id) {
+    if (isPolling) return;
+    isPolling = true;
+    try {
+        const state = await MeshFlowAPI.getState(id);
+        globalState = state;
+        const currentStatus = (state.status || '').toUpperCase();
+        state.status = currentStatus;
+        
+        updateUI(state);
+        
+        if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(currentStatus)) {
+            if(state.finalOutput || state.counterfactuals) {
+                renderFinalOutputCard(state);
+                
+                // Show Top Action Button
+                const topBtn = document.getElementById('top-action-bar');
+                if (topBtn) {
+                    topBtn.classList.remove('hidden');
+                    topBtn.classList.add('block', 'animate-in', 'fade-in', 'duration-700');
+                }
+
+                // 4. Final Report Auto-Render exactly once
+                if (currentStatus === 'COMPLETED' && !reportOpened) {
+                    reportOpened = true;
+                    setTimeout(openFinalReportModal, 1500); 
+                }
+            } else if (currentStatus === 'FAILED') {
+                renderFinalOutputCard(state); 
+            }
+            isPolling = false; return; 
+        }
+    } catch (err) {
+        if (globalState && ['COMPLETED', 'FAILED', 'CANCELLED'].includes(globalState.status)) {
+            isPolling = false; return;
+        }
+        document.getElementById('mc-title').textContent = "Execution Terminated";
+        document.getElementById('mc-status').innerHTML = "Connection Expired";
+        document.getElementById('mc-pulse').className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]";
+        isPolling = false; return;
+    }
+    
+    isPolling = false;
+    pollTimer = setTimeout(() => startPolling(id), 1000);
+}
+
+window.addEventListener('beforeunload', () => { if (pollTimer) clearTimeout(pollTimer); });
+
+function updateUI(state) {
+    // 1. HEADER & GLOBAL METRICS
+    document.getElementById('mc-title').textContent = safeText(state.workflowName || 'Execution Stream');
+    const isFailed = state.status === 'FAILED';
+    const isCompleted = state.status === 'COMPLETED';
+    const statusEl = document.getElementById('mc-status');
+    const pulse = document.getElementById('mc-pulse');
+    const progressEl = document.getElementById('mc-progress');
+
+    if (isCompleted) {
+        statusEl.textContent = "Pipeline Finalized";
+        statusEl.className = "text-[11px] text-green-400 uppercase tracking-widest font-mono font-bold";
+        pulse.className = "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.8)]";
+        progressEl.className = "text-3xl font-mono text-green-400 font-bold";
+    } else if (isFailed) {
+        statusEl.textContent = "System Failure";
+        statusEl.className = "text-[11px] text-red-400 uppercase tracking-widest font-mono font-bold";
+        pulse.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]";
+        progressEl.className = "text-3xl font-mono text-red-400 font-bold";
+    } else {
+        statusEl.textContent = state.status === 'SYNTHESIZING' ? "Synthesizing Final Report..." : "Executing DAG Router...";
+        progressEl.className = "text-3xl font-mono text-blue-400 font-bold";
+    }
+    progressEl.textContent = `${Number(state.progress) || 0}%`;
+
+    const metrics = state.metrics || {};
+    document.getElementById('metric-cost').textContent = `$${(Number(metrics.totalCost) || 0).toFixed(4)}`;
+    document.getElementById('metric-latency').textContent = `${Number(metrics.totalLatency) || 0}ms`;
+
+    // 2. INTELLIGENCE FEED (Backend Events Only)
+    const feed = document.getElementById('intelligence-feed');
+    const events = state.intelligenceEvents || [];
+    
+    if (events.length > displayedEventsCount) {
+        const newEvents = events.slice(displayedEventsCount);
+        newEvents.forEach(ev => {
+            const timeStr = new Date(ev.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            let icon = "info"; let color = "text-zinc-400";
+            
+            // Map types from backend logic securely
+            if(ev.type.includes("FAIL")) { icon = "x-circle"; color = "text-red-400"; }
+            else if(ev.type.includes("COMPLETED") || ev.type.includes("SUCCESS")) { icon = "check-circle-2"; color = "text-green-400"; }
+            else if(ev.type.includes("FALLBACK")) { icon = "shield-alert"; color = "text-yellow-400"; }
+            else if(ev.type.includes("MODEL") || ev.type.includes("ADVISOR")) { icon = "brain-circuit"; color = "text-purple-400"; }
+            else if(ev.type.includes("SYNTH") || ev.type.includes("GENERATED")) { icon = "sparkles"; color = "text-blue-400"; }
+            else if(ev.type.includes("VALIDATED")) { icon = "check-square"; color = "text-emerald-400"; }
+            else if(ev.type.includes("PARSED")) { icon = "file-search"; color = "text-indigo-400"; }
+
+            const el = document.createElement('div');
+            el.className = "flex gap-4 items-start animate-in fade-in slide-in-from-bottom-2 duration-500";
+            el.innerHTML = `
+                <div class="w-8 h-8 rounded-full border border-white/5 bg-white/[0.02] flex items-center justify-center shrink-0">
+                    <i data-lucide="${icon}" class="w-4 h-4 ${color}"></i>
+                </div>
+                <div class="pt-1 w-full break-words">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[12px] font-bold text-white tracking-wide">${safeText(ev.message)}</span>
+                        <span class="text-[9px] font-mono text-zinc-600 shrink-0 ml-2">${timeStr}</span>
+                    </div>
+                    ${(ev.provider && ev.model) ? `<p class="text-[10px] font-mono text-blue-400/90 mt-0.5">${safeText(ev.provider)} / ${safeText(ev.model)}</p>` : ''}
+                    ${ev.reason ? `<p class="text-[10px] text-zinc-400 mt-1 italic leading-relaxed border-l border-zinc-700 pl-2 py-0.5">${safeText(ev.reason)}</p>` : ''}
+                    ${ev.durationMs ? `<p class="text-[9px] font-mono text-zinc-600 mt-0.5">${ev.durationMs}ms compute</p>` : ''}
+                </div>
+            `;
+            feed.appendChild(el);
+        });
+        displayedEventsCount = events.length;
+        lucide.createIcons();
+        feed.scrollTop = feed.scrollHeight;
+    }
+
+    // 3. MAIN NODES PIPELINE (Strict JSON match to backend schema)
+    // SORTED BY DEPENDENCIES TO RENDER LINEARLY
+    const rawNodes = state.nodes || [];
+    const nodes = [...rawNodes].sort((a,b) => (a.dependencies?.length || 0) - (b.dependencies?.length || 0));
+    
+    const container = document.getElementById('nodes-container');
+    
+    if (nodes.length > 0) {
+        container.innerHTML = nodes.map(node => {
+            const status = (node.status || '').toUpperCase();
+            const isFallback = node.fallbackActivated === true;
+            
+            let borderClass = 'border-white/5 bg-white/[0.02]';
+            let statusBadge = '<span class="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest">Pending Route</span>';
+            let outputText = 'Awaiting execution...';
+            
+            if (status === 'RUNNING') {
+                borderClass = 'border-blue-500/30 bg-blue-900/10 ring-1 ring-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.1)]';
+                statusBadge = '<span class="text-[10px] font-mono font-bold text-blue-400 uppercase flex items-center gap-1.5"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Processing</span>';
+                outputText = '<span class="text-blue-400 animate-pulse font-mono">Analyzing semantic graph...</span>';
+            } else if (status === 'COMPLETED') {
+                borderClass = 'border-white/10 bg-black/40 hover:bg-white/[0.04] transition-colors cursor-pointer';
+                statusBadge = '<span class="text-[10px] font-mono font-bold text-green-400 uppercase flex items-center gap-1.5"><i data-lucide="check" class="w-3 h-3"></i> Success</span>';
+                outputText = node.output ? safeText(node.output).substring(0, 140) + '...' : 'Data processed.';
+            } else if (status === 'FAILED') {
+                borderClass = 'border-red-500/20 bg-red-950/20';
+                statusBadge = '<span class="text-[10px] font-mono font-bold text-red-400 uppercase flex items-center gap-1.5"><i data-lucide="x" class="w-3 h-3"></i> Failed</span>';
+                outputText = `<span class="text-red-400">${safeText(node.error?.reason || 'Node execution failed.')}</span>`;
+            }
+
+            // Routing logic strictly aligns with node.routing and node.routingAudit
+            const providerName = node.provider || node.routing?.provider || 'Auto';
+            const modelName = node.apiModel || node.routing?.model || 'Pending';
+            
+            let modelVisual = `<p class="text-[10px] font-mono text-zinc-400 mt-1">${safeText(providerName)} / <span class="text-white">${safeText(modelName)}</span></p>`;
+            
+            // Self-Healing Representation
+            if (isFallback && status === 'COMPLETED' && node.attemptHistory && node.attemptHistory.length > 1) {
+                borderClass += ' animate-heal';
+                const failedAttempt = node.attemptHistory[0];
+                const successAttempt = node.attemptHistory[node.attemptHistory.length - 1];
+                
+                statusBadge = '<span class="text-[10px] font-mono font-bold text-yellow-400 uppercase flex items-center gap-1.5"><i data-lucide="shield-alert" class="w-3 h-3"></i> Auto-Healed</span>';
+                
+                modelVisual = `
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-[10px] font-mono text-red-400 line-through opacity-70">${safeText(failedAttempt.model)}</span>
+                        <i data-lucide="arrow-right" class="w-3 h-3 text-zinc-500"></i>
+                        <span class="text-[10px] font-mono text-green-400 font-bold">${safeText(successAttempt.model)}</span>
+                    </div>
+                `;
+            }
+
+            const latencyVal = node.latency !== undefined ? `${node.latency}ms` : '--';
+            const costVal = node.cost !== undefined ? `$${node.cost.toFixed(4)}` : '--';
+            const tokensVal = node.tokens !== undefined ? node.tokens : '--';
+
+            const metricsHtml = (status === 'COMPLETED' || node.latency > 0) ? `
+                <div class="flex items-center gap-4 text-right shrink-0">
+                    <div class="hidden sm:block">
+                        <p class="text-[9px] uppercase tracking-widest text-zinc-500 mb-0.5">Latency</p>
+                        <p class="text-xs font-mono text-zinc-300">${latencyVal}</p>
+                    </div>
+                    <div class="hidden sm:block">
+                        <p class="text-[9px] uppercase tracking-widest text-zinc-500 mb-0.5">Cost</p>
+                        <p class="text-xs font-mono text-zinc-300">${costVal}</p>
+                    </div>
+                    <div class="hidden sm:block">
+                        <p class="text-[9px] uppercase tracking-widest text-zinc-500 mb-0.5">Tokens</p>
+                        <p class="text-xs font-mono text-zinc-300">${tokensVal}</p>
+                    </div>
+                    ${status === 'COMPLETED' ? `
+                    <button class="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center bg-white/5 hover:bg-white/10 text-white transition-colors ml-2" title="View OS Intelligence">
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>` : ''}
+                </div>` : '';
+
+            return `
+            <div class="w-full glass-panel rounded-[20px] p-5 relative overflow-hidden ${borderClass}" ${status === 'COMPLETED' ? `onclick="openIntelligenceDrawer('${node.id}')"` : ''}>
+                <div class="flex justify-between items-start gap-4">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-3 mb-1">
+                            <h3 class="text-sm font-bold text-white tracking-tight">${safeText(node.taskName || node.name)}</h3>
+                            ${statusBadge}
+                        </div>
+                        ${modelVisual}
+                        <p class="text-xs text-zinc-400 mt-3 truncate leading-relaxed max-w-[85%]">${outputText}</p>
+                    </div>
+                    ${metricsHtml}
+                </div>
+            </div>`;
+        }).join('');
+        lucide.createIcons();
+    }
+}
+
+// 4. COUNTERFACTUAL DASHBOARD & ERRORS
+function renderFinalOutputCard(state) {
+    const card = document.getElementById('final-output-card');
+    
+    if (state.status === 'FAILED') {
+        const errCode = state.errors?.[0]?.code || state.detailedState || "EXECUTION_FAILED";
+        const errMsg = state.errors?.[0]?.reason || "The pipeline encountered a critical error.";
+        const displayCode = formatErrorCode(errCode);
+
+        card.innerHTML = `
+        <div class="w-full flex flex-col items-center justify-center text-center relative z-10 p-8 glass-panel border-red-500/30 rounded-[24px] mt-6 shadow-[0_20px_60px_rgba(239,68,68,0.1)] break-words">
+            <div class="w-16 h-16 bg-red-500/10 text-red-400 border border-red-500/30 rounded-full flex items-center justify-center mb-5 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                <i data-lucide="alert-triangle" class="w-7 h-7"></i>
+            </div>
+            <div class="text-white text-xl font-bold tracking-tight mb-2">${displayCode}</div>
+            <p class="text-sm text-zinc-400 mb-8 max-w-md leading-relaxed">${safeText(errMsg)}</p>
+            <button onclick="window.location.href='/builder'" class="px-8 py-4 bg-white/5 hover:bg-white/10 text-white text-sm font-bold rounded-2xl transition-all flex items-center gap-3 border border-white/10 w-full sm:w-auto justify-center">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Return to Architect
+            </button>
+        </div>`;
+        lucide.createIcons();
+        return;
+    }
+
+    if (!state.counterfactuals || !state.counterfactuals.meshOS) return; 
+
+    const cf = state.counterfactuals;
+    
+    // THE BENCHMARK BOX REMAINS EXACTLY AS IT WAS IN CODE 1 (Stacked rows to prevent overlaps)
+    card.innerHTML = `
+        <div class="w-full mt-6 animate-in fade-in slide-in-from-bottom-8 duration-700 glass-panel rounded-3xl p-6 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[80px] rounded-full pointer-events-none"></div>
+            
+            <div class="mb-6 relative z-10">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xl font-bold tracking-tight text-white">Executive Benchmark</h2>
+                    <div class="bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-lg shrink-0 flex items-center gap-1.5 shadow-inner">
+                        <i data-lucide="trending-down" class="w-3.5 h-3.5 text-green-400"></i>
+                        <span class="text-[11px] font-mono font-bold text-green-400 leading-none">${cf.savingsPercentage}% Saved</span>
+                    </div>
+                </div>
+                <p class="text-[11px] text-zinc-400">MeshFlow dynamic routing vs. Monolithic execution.</p>
+            </div>
+
+            <div class="flex flex-col gap-3 mb-6 relative z-10">
+                <!-- GPT Benchmark -->
+                <div class="flex items-center justify-between bg-black/40 border border-white/5 p-4 rounded-2xl opacity-70 hover:opacity-100 transition-opacity">
+                    <div>
+                        <p class="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Only GPT-4o</p>
+                        <p class="text-[10px] text-zinc-600 font-mono">${cf.onlyGPT.latency}ms compute</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-lg font-mono text-zinc-300 font-bold leading-none">$${cf.onlyGPT.cost.toFixed(4)}</p>
+                    </div>
+                </div>
+                
+                <!-- Claude Benchmark -->
+                <div class="flex items-center justify-between bg-black/40 border border-white/5 p-4 rounded-2xl opacity-70 hover:opacity-100 transition-opacity">
+                    <div>
+                        <p class="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Only Claude-3.5</p>
+                        <p class="text-[10px] text-zinc-600 font-mono">${cf.onlyClaude.latency}ms compute</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-lg font-mono text-zinc-300 font-bold leading-none">$${cf.onlyClaude.cost.toFixed(4)}</p>
+                    </div>
+                </div>
+                
+                <!-- MeshFlow (Winner) -->
+                <div class="flex items-center justify-between bg-blue-900/10 border border-blue-500/30 p-4 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.1)] relative overflow-hidden group hover:bg-blue-900/20 transition-all cursor-default">
+                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)] group-hover:w-1.5 transition-all"></div>
+                    <div class="pl-2">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <p class="text-[10px] font-mono font-bold text-blue-300 uppercase tracking-widest">MeshOS Route</p>
+                            <span class="px-1.5 py-0.5 bg-blue-500 text-white text-[8px] font-bold uppercase tracking-widest rounded shadow-md">Winner</span>
+                        </div>
+                        <p class="text-[10px] text-blue-400/60 font-mono">${cf.meshOS.latency}ms compute</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xl font-mono text-white font-bold leading-none">$${cf.meshOS.cost.toFixed(4)}</p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="openFinalReportModal()" class="w-full relative inline-flex items-center justify-center gap-2 px-6 py-4 font-bold text-white bg-blue-600 rounded-xl overflow-hidden transition-all hover:scale-[1.02] shadow-[0_0_20px_rgba(37,99,235,0.4)] relative z-10 text-sm tracking-wide">
+                <span class="absolute inset-0 w-full h-full bg-gradient-to-br from-blue-400 via-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
+                <i data-lucide="sparkles" class="w-4 h-4 relative z-10"></i>
+                <span class="relative z-10">Open Final OS Report</span>
+            </button>
+        </div>
+    `;
+    lucide.createIcons();
+    
+    // Safely populate modal to prevent errors from crashing the poll loop
+    try {
+        populateModalData(state);
+    } catch(e) {
+        console.error("Populate Modal Error:", e);
+    }
+}
+
+// 5. INTELLIGENCE PANEL (MODEL DEBATE DRAWER)
+function openIntelligenceDrawer(nodeId) {
+    if (!globalState) return;
+    const node = globalState.nodes.find(n => n.id === nodeId);
+    if (!node || !node.routingAudit) return;
+
+    const drawer = document.getElementById('intelligence-drawer');
+    const content = document.getElementById('drawer-content');
+    
+    document.getElementById('drawer-title').textContent = node.taskName || node.name;
+    
+    const candidatesHtml = node.routingAudit.candidates.map((c, i) => {
+        const isWinner = c.verdict === 'WINNER';
+        const barColor = isWinner ? 'bg-blue-500' : 'bg-zinc-600';
+        const cardBg = isWinner ? 'bg-blue-500/10 border-blue-500/30' : 'bg-white/[0.02] border-white/5 opacity-70 hover:opacity-100';
+        
+        return `
+        <div class="border rounded-2xl p-5 mb-5 relative overflow-hidden transition-all ${cardBg}">
+            ${isWinner ? '<div class="absolute top-0 right-0 px-3 py-1 bg-blue-500 text-white text-[9px] font-bold uppercase tracking-widest rounded-bl-xl shadow-md">Winner</div>' : ''}
+            
+            <p class="text-[10px] text-zinc-500 font-mono uppercase tracking-widest mb-1">${safeText(c.provider)}</p>
+            <div class="flex justify-between items-center mb-6">
+                <p class="text-base font-bold text-white break-words pr-2">${safeText(c.model)}</p>
+                ${!isWinner ? '<span class="text-[9px] font-bold text-red-400 uppercase tracking-widest bg-red-500/10 px-2.5 py-1 rounded-md border border-red-500/20 shrink-0">Rejected</span>' : ''}
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <div>
+                    <div class="flex justify-between text-[11px] mb-1.5 font-bold">
+                        <span class="text-zinc-400 font-mono uppercase tracking-wider">Capability Score</span>
+                        <span class="text-white font-mono">${c.overallScore}</span>
+                    </div>
+                    <div class="w-full bg-black/60 rounded-full h-2 overflow-hidden shadow-inner border border-white/5">
+                        <div class="h-full ${barColor} score-bar-fill rounded-full shadow-[0_0_10px_currentColor]" style="width: ${Math.min(100, (c.overallScore / 100000) * 100)}%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-3 text-[10px] font-mono border-t border-white/10 pt-4 mb-4">
+                <div class="flex flex-col"><span class="text-zinc-500 uppercase tracking-widest mb-1 font-bold">Logic</span><span class="text-zinc-300 text-xs">${c.reasoningScore}</span></div>
+                <div class="flex flex-col"><span class="text-zinc-500 uppercase tracking-widest mb-1 font-bold">Capab.</span><span class="text-zinc-300 text-xs">${c.capabilityScore}</span></div>
+                <div class="flex flex-col"><span class="text-zinc-500 uppercase tracking-widest mb-1 font-bold">Speed</span><span class="text-zinc-300 text-xs">${c.latencyScore}</span></div>
+                <div class="flex flex-col"><span class="text-zinc-500 uppercase tracking-widest mb-1 font-bold">Econ.</span><span class="text-zinc-300 text-xs">${c.costScore}</span></div>
+            </div>
+            
+            <div class="flex justify-between items-center text-[11px] font-mono border-t border-white/10 pt-4 mt-2">
+                <span class="text-zinc-400 font-bold">Latency: <span class="text-white">${c.estimatedLatencyMs}ms</span></span>
+                <span class="text-zinc-400 font-bold">Cost: <span class="text-blue-400">$${c.estimatedCostUsd}</span></span>
+            </div>
+            
+            <div class="mt-5 p-4 bg-black/40 rounded-xl border border-white/5 shadow-inner">
+                <p class="text-[10px] ${isWinner ? 'text-blue-400' : 'text-zinc-500'} uppercase tracking-widest font-bold mb-2">Architect Reasoning</p>
+                <p class="text-[13px] text-zinc-300 leading-relaxed font-sans">${safeText(c.reason)}</p>
+            </div>
+        </div>`;
+    }).join('');
+
+    content.innerHTML = `
+        <p class="text-[13px] text-zinc-400 leading-relaxed mb-8">MeshFlow OS evaluated <strong class="text-white">${node.routingAudit.modelsEvaluated} models</strong> in parallel. Below is the decision matrix mapped against task requirements.</p>
+        ${candidatesHtml}
+        
+        <div class="mt-10 mb-6">
+            <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Complete Node Output</p>
+            <div class="bg-black border border-white/10 rounded-2xl p-5 max-h-64 overflow-y-auto custom-scrollbar shadow-inner">
+                <p class="text-xs font-mono text-zinc-400 whitespace-pre-wrap leading-relaxed break-words">${safeText(node.output)}</p>
+            </div>
+        </div>
+    `;
+
+    drawer.classList.add('open');
+    
+    setTimeout(() => {
+        const bars = content.querySelectorAll('.score-bar-fill');
+        bars.forEach(bar => {
+            const w = bar.style.width;
+            bar.style.width = '0%';
+            setTimeout(() => { bar.style.width = w; }, 50);
+        });
+    }, 50);
+}
+
+function closeIntelligenceDrawer() {
+    document.getElementById('intelligence-drawer').classList.remove('open');
+}
+
+// ----------------------------------------------------
+// REDESIGNED MODAL DATA POPULATOR (From Code 2)
+// ----------------------------------------------------
+function populateModalData(state) {
+    if (!state) return;
+
+    // Header Updates
+    const titleEl = document.getElementById('modal-title');
+    if(titleEl) titleEl.textContent = safeText(state.workflowName || 'Final OS Report');
+    
+    const latEl = document.getElementById('modal-latency');
+    if(latEl) latEl.textContent = `${state.metrics?.totalLatency || 0}ms`;
+    
+    const costEl = document.getElementById('modal-cost');
+    if(costEl) costEl.textContent = `$${(state.metrics?.totalCost || 0).toFixed(4)}`;
+    
+    const confidences = (state.nodes || [])
+        .map(n => parseFloat(n.explainability?.estimatedConfidence || n.routingAudit?.confidence || n.routing?.confidence))
+        .filter(v => !isNaN(v));
+    const avgConfidence = confidences.length ? (confidences.reduce((a, b) => a + b, 0) / confidences.length).toFixed(1) : null;
+    
+    const confEl = document.getElementById('modal-confidence');
+    if(confEl) confEl.textContent = avgConfidence !== null ? `${avgConfidence}%` : '--';
+
+    // 1. Synthesized Report (Markdown)
+    const mdContainer = document.getElementById('markdown-container');
+    if(mdContainer) mdContainer.innerHTML = parseHTML(state.finalOutput?.text || '');
+    
+    // 2. Final AI Output (Raw Pipeline Data)
+    const finalOutContainer = document.getElementById('ext-final-ai-output');
+    if(finalOutContainer) finalOutContainer.textContent = state.finalOutput?.rawPipelineData || state.finalOutput?.finalNodeOutput || "No pre-synthesis data available.";
+    
+    // 3. Pipeline Output Flow (Nodes sequence)
+    const flowContainer = document.getElementById('ext-pipeline-flow');
+    if(flowContainer) {
+        // Sort flow to ensure chronological dependency mapping
+        const rawNodes = state.nodes || [];
+        const flow = [...rawNodes].sort((a,b) => (a.dependencies?.length || 0) - (b.dependencies?.length || 0));
+        
+        flowContainer.innerHTML = flow.map((step, i) => `
+            <div class="relative bg-black border border-white/10 p-5 rounded-xl mb-6 shadow-inner">
+                <div class="absolute -left-[35px] top-5 w-4 h-4 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]"></div>
+                <p class="text-[10px] font-mono font-bold text-blue-400 mb-1.5 tracking-widest uppercase">Step ${i+1}: ${safeText(step.apiModel || step.model)}</p>
+                <h3 class="text-sm font-bold text-white mb-3">${safeText(step.taskName || step.name)}</h3>
+                <div class="bg-white/[0.02] border border-white/5 p-4 rounded-lg text-[11px] text-zinc-400 font-mono max-h-48 overflow-y-auto custom-scrollbar break-words whitespace-pre-wrap">${safeText(step.output || 'No output.')}</div>
+            </div>
+        `).join('');
+    }
+
+    // 4. Overview Grid
+    const overviewGrid = document.getElementById('overview-grid');
+    if (overviewGrid) {
+        const totalNodes = (state.nodes || []).length;
+        const fallbackCount = (state.nodes || []).filter(n => n.fallbackActivated).length;
+        
+        overviewGrid.innerHTML = `
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-inner flex flex-col">
+                <div class="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center mb-3 shrink-0"><i data-lucide="layers" class="w-4 h-4"></i></div>
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2">Nodes Executed</p>
+                <p class="text-2xl font-mono text-white mt-auto">${totalNodes}</p>
+            </div>
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-inner flex flex-col">
+                <div class="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center mb-3 shrink-0"><i data-lucide="cpu" class="w-4 h-4"></i></div>
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2">Models Utilized</p>
+                <p class="text-2xl font-mono text-white mt-auto">${new Set((state.nodes || []).map(n => n.apiModel)).size}</p>
+            </div>
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-inner flex flex-col">
+                <div class="w-8 h-8 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mb-3 shrink-0"><i data-lucide="gauge" class="w-4 h-4"></i></div>
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2">Execution Health</p>
+                <p class="text-2xl font-mono text-white mt-auto">Stable</p>
+            </div>
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-inner flex flex-col">
+                <div class="w-8 h-8 rounded-full ${fallbackCount > 0 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-zinc-700/30 text-zinc-500'} flex items-center justify-center mb-3 shrink-0"><i data-lucide="shield-alert" class="w-4 h-4"></i></div>
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2">Fallback Interventions</p>
+                <p class="text-2xl font-mono text-white mt-auto">${fallbackCount}</p>
+            </div>
+        `;
+    }
+
+    // 5. Execution Statistics
+    const statsGrid = document.getElementById('stats-grid');
+    if (statsGrid) {
+        const fallbackCount = (state.nodes || []).filter(n => n.fallbackActivated).length;
+        statsGrid.innerHTML = `
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-inner flex flex-col">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2">Total Output Tokens</p>
+                <p class="text-3xl font-mono font-bold text-white mt-auto break-words">${(state.metrics?.totalTokens || 0).toLocaleString()}</p>
+            </div>
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-inner flex flex-col">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2">Total Compute Time</p>
+                <p class="text-3xl font-mono font-bold text-white mt-auto break-words">${state.metrics?.totalLatency || 0}ms</p>
+            </div>
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-inner flex flex-col">
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2">Fallback Interventions</p>
+                <p class="text-3xl font-mono font-bold ${fallbackCount > 0 ? 'text-yellow-400' : 'text-zinc-500'} mt-auto">${fallbackCount}</p>
+            </div>
+        `;
+    }
+    
+    // 6. Models Used
+    const modelsGrid = document.getElementById('models-grid');
+    if (modelsGrid) {
+        modelsGrid.innerHTML = (state.nodes || []).map(n => `
+            <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 flex flex-col relative overflow-hidden shadow-inner hover:bg-white/5 transition-colors group">
+                <div class="flex justify-between items-start mb-4 relative z-10 gap-2">
+                    <div class="flex gap-3 items-center min-w-0">
+                        <div class="w-9 h-9 rounded-full bg-black border border-white/10 flex items-center justify-center shadow-inner shrink-0"><i data-lucide="cpu" class="w-4 h-4 text-zinc-300"></i></div>
+                        <div class="min-w-0">
+                            <p class="text-[9px] text-zinc-500 font-mono uppercase tracking-widest mb-0.5 truncate">${safeText(n.provider || n.routing?.provider || 'Auto')}</p>
+                            <p class="text-sm font-bold text-white tracking-wide truncate">${safeText(n.apiModel || n.routing?.model || n.model)}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1 relative z-10 mb-5">
+                    <p class="text-[11px] text-zinc-400 leading-relaxed border-l-2 border-blue-500/40 pl-3 py-0.5 bg-gradient-to-r from-blue-500/5 to-transparent">${safeText(n.routing?.reason || n.routingAudit?.winningReason || n.explainability?.why || 'Capability-based route execution.')}</p>
+                </div>
+                <div class="grid grid-cols-3 gap-2 border-t border-white/5 pt-3 relative z-10">
+                    <div class="flex flex-col"><p class="text-[8px] uppercase tracking-widest text-zinc-500 font-bold mb-1">Tokens</p><p class="text-[11px] font-mono text-zinc-300 break-words">${n.tokens || 0}</p></div>
+                    <div class="flex flex-col"><p class="text-[8px] uppercase tracking-widest text-zinc-500 font-bold mb-1">Latency</p><p class="text-[11px] font-mono text-zinc-300 break-words">${n.latency || 0}ms</p></div>
+                    <div class="flex flex-col"><p class="text-[8px] uppercase tracking-widest text-zinc-500 font-bold mb-1">Cost</p><p class="text-[11px] font-mono text-blue-400 break-words">$${(n.cost || 0).toFixed(4)}</p></div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    lucide.createIcons();
+}
+
+function openFinalReportModal() {
+    document.getElementById('liquid-modal-backdrop').classList.replace('opacity-0', 'opacity-100');
+    document.getElementById('liquid-modal-backdrop').classList.remove('pointer-events-none');
+    document.getElementById('liquid-modal').classList.replace('scale-95', 'scale-100');
+}
+
+function closeFinalReportModal() {
+    document.getElementById('liquid-modal-backdrop').classList.replace('opacity-100', 'opacity-0');
+    document.getElementById('liquid-modal-backdrop').classList.add('pointer-events-none');
+    document.getElementById('liquid-modal').classList.replace('scale-100', 'scale-95');
+}
+
+function switchModalTab(tabId) {
+    document.querySelectorAll('.modal-tab').forEach(b => b.classList.remove('border-white', 'text-white', 'text-blue-400', 'text-purple-400', 'active'));
+    
+    const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+    if(activeBtn) {
+        if (tabId === 'flow') activeBtn.classList.add('border-b-2', 'border-blue-400', 'text-blue-400', 'active');
+        else if (tabId === 'finalout') activeBtn.classList.add('border-b-2', 'border-purple-400', 'text-purple-400', 'active');
+        else activeBtn.classList.add('border-white', 'text-white', 'active');
+    }
+    
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+    
+    const targetPane = document.getElementById(`modal-tab-${tabId}`);
+    if(targetPane) {
+        targetPane.classList.remove('hidden');
+    }
+}
+
+function getFinalText() {
+    if(!globalState || !globalState.finalOutput) return '';
+    return globalState.finalOutput.text || (typeof globalState.finalOutput === 'string' ? globalState.finalOutput : '');
+}
+
+function downloadPDF() {
+    switchModalTab('detailed');
+    setTimeout(() => {
+        const element = document.getElementById('modal-tab-detailed');
+        const opt = { margin: 0.5, filename: 'MeshFlow_OS_Report.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, backgroundColor: '#09090b' }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
+        html2pdf().set(opt).from(element).save();
+    }, 100);
+}
+
+function downloadMarkdown() {
+    const blob = new Blob([getFinalText()], { type: 'text/markdown' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'MeshFlow_OS_Report.md'; a.click();
+}
+
+function copyReport() {
+    navigator.clipboard.writeText(getFinalText());
+    alert('Markdown report copied to clipboard.');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const id = new URLSearchParams(window.location.search).get('id');
+    if (id) startPolling(id);
+});
+</script>
+</body>
+</html>

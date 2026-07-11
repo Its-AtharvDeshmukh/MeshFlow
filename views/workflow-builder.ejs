@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <%- include('partials/head') %>
+    <link rel="stylesheet" href="/css/builder.css">
+    <script src="/js/api-services.js"></script>
+    <title>Architect | MeshFlow X</title>
+</head>
+<body class="bg-[#040405] text-zinc-300 h-screen w-screen flex overflow-hidden">
+    
+    <!-- Cinematic Deep Space Background -->
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(37,99,235,0.08)_0,transparent_50%)]"></div>
+        <div class="absolute inset-0 mesh-grid-bg opacity-10"></div>
+    </div>
+
+    <%- include('partials/sidebar', { currentPath: '/builder' }) %>
+    
+    <div class="flex flex-1 flex-col md:pl-60 overflow-hidden relative z-10 transition-all duration-300">
+        <%- include('partials/builder/toolbar') %>
+        
+        <div class="flex flex-1 relative overflow-hidden">
+            <main class="flex-1 relative overflow-hidden w-full">
+                <!-- Interactive Canvas Area -->
+                <div id="canvas-wrapper" class="absolute inset-0 cursor-crosshair outline-none touch-none">
+                    <div id="nodes-canvas" class="relative w-full h-full transform-origin-top-left transition-transform duration-75">
+                        <svg id="edges-layer" class="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible"></svg>
+                    </div>
+                </div>
+            </main>
+            
+            <%- include('partials/builder/inspector') %>
+        </div>
+        
+        <%- include('partials/builder/bottom-panel') %>
+    </div>
+
+    <script src="/js/builder-engine.js"></script>
+</body>
+</html>

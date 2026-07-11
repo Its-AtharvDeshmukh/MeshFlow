@@ -1,0 +1,46 @@
+<aside class="fixed inset-y-0 left-0 w-64 bg-zinc-950/80 backdrop-blur-2xl border-r border-white/5 flex flex-col z-[100] shadow-2xl transition-all">
+    <div class="h-16 flex items-center px-6 border-b border-white/5 shrink-0">
+        <div class="flex items-center gap-3">
+           <div class="w-7 h-7 flex items-center justify-center">
+    <img src="/assets/mesh-logo.png" alt="MeshFlow X" class="w-full h-full object-contain">
+</div>
+            <span class="text-white font-bold tracking-tight text-lg">MeshFlow <span class="text-blue-500">X</span></span>
+        </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+        <a href="/" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all <%= currentPath === '/' ? 'bg-blue-500/10 text-blue-400' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5' %>">
+            <i data-lucide="home" class="w-4 h-4"></i> Home
+        </a>
+        <a href="/builder" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all <%= currentPath === '/builder' ? 'bg-blue-500/10 text-blue-400' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5' %>">
+            <i data-lucide="workflow" class="w-4 h-4"></i> Architect
+        </a>
+        <a href="/mission-control" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all <%= currentPath === '/mission-control' ? 'bg-blue-500/10 text-blue-400' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5' %>">
+            <i data-lucide="activity" class="w-4 h-4"></i> Mission Control
+        </a>
+        
+        <div class="pt-6 pb-2 px-3">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-zinc-600">OS Metrics</p>
+        </div>
+        
+        <a href="/history" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all <%= currentPath === '/history' ? 'bg-blue-500/10 text-blue-400' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5' %>">
+            <i data-lucide="history" class="w-4 h-4"></i> History
+        </a>
+        <a href="/analytics" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all <%= currentPath === '/analytics' ? 'bg-blue-500/10 text-blue-400' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5' %>">
+            <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Analytics
+        </a>
+        <a href="/templates" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all <%= currentPath === '/templates' ? 'bg-blue-500/10 text-blue-400' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5' %>">
+            <i data-lucide="library" class="w-4 h-4"></i> Templates
+        </a>
+    </nav>
+
+    <div class="p-4 border-t border-white/5 shrink-0">
+        <div class="bg-black/50 border border-zinc-800 rounded-lg p-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="text-[10px] font-mono text-zinc-400">Mesh API Connected</span>
+            </div>
+            <i data-lucide="shield-check" class="w-3 h-3 text-zinc-500"></i>
+        </div>
+    </div>
+</aside>

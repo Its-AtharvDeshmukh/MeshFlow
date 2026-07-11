@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <%- include('partials/head') %>
+    <title>MeshFlow X | OS Command Center</title>
+    <script src="/js/api-services.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-deep: #040405;
+            --glass-bg: rgba(10, 10, 12, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --neon-blue: #3b82f6;
+            --neon-purple: #8b5cf6;
+            --neon-cyan: #06b6d4;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: #f4f4f5;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .font-display { font-family: 'Space Grotesk', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Premium Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+
+        /* Cinematic Background Elements */
+        .mesh-grid {
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(ellipse 80% 80% at 50% -20%, black 20%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% -20%, black 20%, transparent 80%);
+        }
+
+        .aurora-glow {
+            position: absolute;
+            width: 800px; height: 600px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+            animation: breathe 12s ease-in-out infinite alternate;
+        }
+        .aurora-1 { background: radial-gradient(circle, var(--neon-blue), transparent 70%); top: -200px; left: -200px; }
+        .aurora-2 { background: radial-gradient(circle, var(--neon-purple), transparent 70%); top: 10%; right: -300px; animation-delay: -5s; }
+
+        @keyframes breathe {
+            0% { transform: scale(1) translate(0, 0); opacity: 0.15; }
+            100% { transform: scale(1.1) translate(20px, 30px); opacity: 0.25; }
+        }
+
+        /* Hero Text Gradient */
+        .hero-text {
+            background: linear-gradient(to right, #ffffff 20%, #a1a1aa 50%, var(--neon-blue) 80%, var(--neon-cyan) 100%);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: text-shine 6s linear infinite;
+        }
+        @keyframes text-shine { to { background-position: 200% center; } }
+
+        /* Liquid Glass Panels */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+        }
+
+        /* Glowing Action Button */
+        .btn-glow {
+            position: relative;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            z-index: 1;
+            overflow: hidden;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+        .btn-glow::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent);
+            transform: skewX(-20deg) translateX(-150%);
+            transition: transform 0.6s ease;
+        }
+        .btn-glow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255,255,255,0.4);
+        }
+        .btn-glow:hover::before { transform: skewX(-20deg) translateX(150%); }
+        .btn-glow:active { transform: translateY(1px) scale(0.98); }
+        .btn-glow:disabled {
+            background: #18181b; box-shadow: none; color: #52525b; cursor: not-allowed;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .btn-glow:disabled::before { display: none; }
+
+        /* Floating Particles */
+        .particle {
+            position: absolute;
+            background: var(--neon-blue);
+            border-radius: 50%;
+            box-shadow: 0 0 10px 2px var(--neon-blue);
+            pointer-events: none;
+            animation: float-up 10s linear infinite;
+            opacity: 0;
+        }
+        @keyframes float-up {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { opacity: 0.6; }
+            80% { opacity: 0.6; }
+            100% { transform: translateY(-100px) scale(1.2); opacity: 0; }
+        }
+
+        /* DAG Pipeline Nodes */
+        .pipeline-node {
+            position: relative;
+            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+            border: 1px solid var(--glass-border);
+            animation: pop-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0; transform: translateY(10px) scale(0.95);
+        }
+        @keyframes pop-in { to { opacity: 1; transform: translateY(0) scale(1); } }
+        
+        .pipeline-node.pulse-active {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.2), inset 0 0 20px rgba(59, 130, 246, 0.1);
+        }
+
+        .pipeline-edge {
+            position: relative; flex: 1; height: 1px; background: rgba(255,255,255,0.1); overflow: hidden;
+        }
+        .pipeline-edge::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-purple), transparent);
+            transform: translateX(-100%);
+        }
+        .pipeline-edge.data-flow::after {
+            animation: flow-right 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes flow-right { to { transform: translateX(100%); } }
+
+        /* Textarea composer */
+        .composer-box { transition: all 0.3s ease; }
+        .composer-box:focus-within {
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3), 0 20px 40px rgba(0,0,0,0.5);
+            background: rgba(10, 10, 12, 0.8);
+        }
+
+        /* Status Dot Ping */
+        .status-ping { position: relative; }
+        .status-ping::after {
+            content: ''; position: absolute; inset: -2px; border-radius: 50%;
+            background: inherit; filter: blur(4px); opacity: 0.7;
+        }
+    </style>
+</head>
+<body class="relative min-h-screen flex flex-col">
+
+    <!-- Ambient Engine -->
+    <div class="fixed inset-0 z-0 pointer-events-none">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(37,99,235,0.05)_0,transparent_50%)]"></div>
+        <div class="absolute inset-0 mesh-grid"></div>
+        <div class="aurora-glow aurora-1"></div>
+        <div class="aurora-glow aurora-2"></div>
+        <div id="particle-engine" class="absolute inset-0 overflow-hidden"></div>
+    </div>
+
+    <!-- Navigation Header (Fixed Z-Index & Totally Transparent) -->
+    <header class="relative z-[9999] w-full pt-8 pb-4 bg-transparent">
+        <div class="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between">
+            
+            <!-- Brand -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.reload()">
+                <div class="w-10 h-10 bg-black/50 border border-white/10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-colors relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <i data-lucide="layers" class="w-5 h-5 text-zinc-200 group-hover:text-white transition-colors relative z-10"></i>
+                </div>
+                <span class="text-white font-display font-bold tracking-tight text-xl drop-shadow-md">MeshFlow <span class="text-blue-500">X</span></span>
+            </div>
+            
+            <!-- Clean Transparent Navigation -->
+            <nav class="hidden md:flex items-center gap-10">
+                <a href="/" class="text-white font-bold text-sm tracking-wide flex items-center gap-2 drop-shadow-md">
+                    <div class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]"></div> Core
+                </a>
+                <a href="/builder" class="text-zinc-400 hover:text-white transition-colors text-sm font-medium tracking-wide">Architect</a>
+                <a href="/mission-control" class="text-zinc-400 hover:text-white transition-colors text-sm font-medium tracking-wide">Mission Control</a>
+                <a href="/history" class="text-zinc-400 hover:text-white transition-colors text-sm font-medium tracking-wide">Ledger</a>
+            </nav>
+
+            <!-- Status Indicator -->
+            <div class="flex items-center gap-4">
+                <div class="hidden sm:flex items-center gap-2 bg-green-500/10 border border-green-500/20 px-4 py-2 rounded-xl shadow-inner backdrop-blur-md">
+                    <div class="status-ping w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-[10px] font-mono font-bold text-green-400 uppercase tracking-widest">Gateway Live</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Command Interface (Perfectly Centered) -->
+    <main class="relative z-10 w-full flex-1 flex flex-col pt-12 pb-32">
+        <div class="max-w-7xl mx-auto w-full px-6 lg:px-10">
+
+            <!-- Hero Section -->
+            <section class="text-center max-w-4xl mx-auto mb-16 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                <div class="inline-flex items-center justify-center p-[1px] rounded-full bg-gradient-to-r from-blue-500/30 to-purple-500/30 mb-8 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
+                    <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/80 backdrop-blur-md text-[10px] font-mono font-bold uppercase tracking-widest text-zinc-300">
+                        <i data-lucide="cpu" class="w-3.5 h-3.5 text-purple-400"></i>
+                        Next-Gen Artificial Intelligence Pipeline
+                    </span>
+                </div>
+                <h1 class="text-5xl md:text-7xl font-display font-bold tracking-tighter leading-[1.05] hero-text mb-6">
+                    Turn raw files into<br class="hidden md:block" /> executable intelligence.
+                </h1>
+                <p class="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto font-light leading-relaxed">
+                    Drop a document, declare your objective, and MeshFlow OS instantly architects and executes the optimal LLM routing matrix.
+                </p>
+            </section>
+
+            <form id="master-generate-form" class="relative z-20">
+                <!-- HIDDEN INPUT FOR DOCUMENT ID -->
+                <input type="hidden" id="verified-document-id" name="documentId" value="" />
+                
+                <section class="grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-12 gap-8 mb-16 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-150">
+                    
+                    <!-- Left: Premium Document Intake Terminal -->
+                    <div class="lg:col-span-12 xl:col-span-5 h-full">
+                        
+                        <!-- DROPZONE (REDESIGNED SAAS STYLE) -->
+                        <div id="dropzone" class="relative h-full min-h-[420px] rounded-[28px] border-2 border-dashed border-white/10 hover:border-blue-500/40 bg-white/[0.01] hover:bg-blue-500/[0.02] transition-all duration-500 flex flex-col items-center justify-center text-center px-10 py-12 cursor-pointer group shadow-sm hover:shadow-[0_0_40px_rgba(59,130,246,0.1)] overflow-hidden">
+                            
+                            <div class="w-20 h-20 rounded-[20px] bg-white/[0.02] border border-white/5 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-blue-500/10 group-hover:border-blue-500/30 transition-all duration-500 shadow-inner">
+                                <i data-lucide="upload-cloud" class="w-8 h-8 text-zinc-500 group-hover:text-blue-400 transition-colors"></i>
+                            </div>
+
+                            <h2 class="text-2xl font-display font-bold text-white tracking-tight mb-3 group-hover:text-blue-50 transition-colors">Initialize Payload</h2>
+                            <p class="text-sm text-zinc-500 mb-8 max-w-xs leading-relaxed">Drag and drop your enterprise documentation or browse to upload securely.</p>
+
+                            <div class="flex flex-wrap items-center justify-center gap-2 mb-8">
+                                <span class="font-mono text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded bg-black/40 border border-white/5 text-zinc-500">PDF</span>
+                                <span class="font-mono text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded bg-black/40 border border-white/5 text-zinc-500">DOCX</span>
+                                <span class="font-mono text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded bg-black/40 border border-white/5 text-zinc-500">CSV</span>
+                                <span class="font-mono text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded bg-black/40 border border-white/5 text-zinc-500">JSON</span>
+                            </div>
+
+                            <button type="button" id="browse-btn" class="px-8 py-3.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-[13px] font-bold text-white transition-all shadow-inner uppercase tracking-wider relative z-10">
+                                Browse Network
+                            </button>
+                            <input type="file" id="file-input" name="file" class="hidden" accept=".pdf,.docx,.csv,.txt,.xlsx,.md,.json" />
+
+                            <p id="file-status" class="mt-5 text-[11px] font-mono font-bold uppercase tracking-widest text-blue-400 hidden"></p>
+                        </div>
+
+                        <!-- VERIFIED DOCUMENT READY PANEL (HUD STYLE) -->
+                        <div id="document-ready-panel" class="hidden glass-panel h-full min-h-[420px] flex flex-col items-center justify-center p-10 w-full rounded-[28px] border-green-500/20 relative overflow-hidden">
+                            <div class="absolute inset-0 bg-green-500/5 pointer-events-none"></div>
+                            <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-green-500 to-transparent opacity-50"></div>
+                            
+                            <div class="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+                                <i data-lucide="shield-check" class="w-8 h-8 text-green-400"></i>
+                            </div>
+                            
+                            <h3 class="font-display font-bold text-2xl text-white mb-2 tracking-tight">Payload Verified</h3>
+                            <p id="doc-meta-name" class="text-xs font-mono text-zinc-400 mb-8 px-4 py-1.5 bg-black/50 border border-white/5 rounded-lg truncate max-w-full">document_name.pdf</p>
+                            
+                            <div class="w-full bg-black/60 border border-white/5 rounded-2xl p-6 mb-8 shadow-inner relative z-10">
+                                <div class="grid grid-cols-2 gap-y-4 gap-x-6 text-left">
+                                    <div class="flex flex-col border-l-2 border-green-500/40 pl-3">
+                                        <span class="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-1">State</span>
+                                        <span class="text-[11px] text-green-400 font-mono font-bold">Secure</span>
+                                    </div>
+                                    <div class="flex flex-col border-l-2 border-white/10 pl-3">
+                                        <span class="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Pages</span>
+                                        <span id="doc-meta-pages" class="text-[11px] text-zinc-300 font-mono">--</span>
+                                    </div>
+                                    <div class="flex flex-col border-l-2 border-white/10 pl-3">
+                                        <span class="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Tokens (Est)</span>
+                                        <span id="doc-meta-words" class="text-[11px] text-zinc-300 font-mono">--</span>
+                                    </div>
+                                    <div class="flex flex-col border-l-2 border-white/10 pl-3">
+                                        <span class="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Format</span>
+                                        <span id="doc-meta-type" class="text-[11px] text-zinc-300 font-mono truncate">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-500/10 border border-green-500/30 rounded-full text-[10px] text-green-400 font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(34,197,94,0.1)] relative z-10">
+                                System Awaiting Architecture <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Prompt Composer & Architecture Definition -->
+                    <div class="lg:col-span-12 xl:col-span-7 flex flex-col h-full relative z-20">
+                        <div class="composer-box flex-1 rounded-[28px] glass-panel p-8 flex flex-col mb-6 relative overflow-hidden group">
+                            <!-- Subtle internal grid for the text area -->
+                            <div class="absolute inset-0 opacity-[0.02] pointer-events-none" style="background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px); background-size: 20px 20px;"></div>
+                            
+                            <div class="flex items-center justify-between mb-6 relative z-10">
+                                <label for="prompt-textarea" class="text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                                    <i data-lucide="terminal-square" class="w-4 h-4 text-blue-400"></i> Objective Protocol
+                                </label>
+                                <span class="text-[9px] font-mono text-zinc-600 bg-white/[0.02] px-2 py-1 rounded border border-white/5 uppercase tracking-widest">Natural Language</span>
+                            </div>
+                            
+                            <textarea
+                                id="prompt-textarea"
+                                name="prompt"
+                                rows="5"
+                                required
+                                placeholder="Instruct the OS... (e.g., 'Perform a comprehensive risk analysis on this legal contract, extract all financial liabilities into JSON, and generate a final synthesized executive summary.')"
+                                class="w-full flex-1 bg-transparent outline-none text-base md:text-lg font-light leading-relaxed placeholder:text-zinc-600 text-white custom-scrollbar relative z-10 resize-none transition-all"
+                            ></textarea>
+                            
+                            <div class="pt-6 mt-auto border-t border-white/5 relative z-10">
+                                <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-3">Quick Directives</p>
+                                <div class="flex flex-wrap gap-2.5">
+                                    <button type="button" class="prompt-chip px-4 py-2 rounded-lg border border-white/5 bg-black/60 hover:bg-white/5 hover:border-white/10 hover:text-white text-[10px] font-bold uppercase tracking-wider text-zinc-400 transition-all shadow-inner" data-prompt="Summarize this document and highlight the 5 most critical insights.">Summarize Data</button>
+                                    <button type="button" class="prompt-chip px-4 py-2 rounded-lg border border-white/5 bg-black/60 hover:bg-white/5 hover:border-white/10 hover:text-white text-[10px] font-bold uppercase tracking-wider text-zinc-400 transition-all shadow-inner" data-prompt="Analyze this invoice, extract line items, calculate totals, and flag any discrepancies.">Invoice Audit</button>
+                                    <button type="button" class="prompt-chip px-4 py-2 rounded-lg border border-white/5 bg-black/60 hover:bg-white/5 hover:border-white/10 hover:text-white text-[10px] font-bold uppercase tracking-wider text-zinc-400 transition-all shadow-inner" data-prompt="Extract all named entities, dates, and financial metrics into a strict structured JSON format.">Extract JSON</button>
+                                    <button type="button" class="prompt-chip px-4 py-2 rounded-lg border border-white/5 bg-black/60 hover:bg-white/5 hover:border-white/10 hover:text-white text-[10px] font-bold uppercase tracking-wider text-zinc-400 transition-all shadow-inner" data-prompt="Translate the key findings of this document into a structured executive report.">Executive Report</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="generate-btn" class="btn-glow w-full py-5 rounded-[24px] font-display font-bold text-lg text-white flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="zap" class="w-5 h-5 relative z-10"></i> 
+                            <span id="cta-label" class="relative z-10 tracking-wide">Compile & Architect Pipeline</span>
+                        </button>
+                    </div>
+
+                </section>
+            </form>
+
+            <!-- Dynamic Pipeline Graph Preview -->
+            <section class="mb-16 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+                <div class="glass-panel rounded-[28px] p-8 md:p-10 relative overflow-hidden">
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-32 bg-blue-500/5 blur-[80px] pointer-events-none"></div>
+                    
+                    <div class="flex items-center justify-between mb-10 border-b border-white/5 pb-5 relative z-10">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                                <i data-lucide="network" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-display font-bold text-xl text-white tracking-tight">OS Pipeline Topology</h3>
+                                <p class="text-xs text-zinc-500 mt-1">Directed Acyclic Graph (DAG) Structure</p>
+                            </div>
+                        </div>
+                        <span id="preview-status" class="font-mono text-[10px] font-bold uppercase tracking-widest text-zinc-500 px-4 py-2 bg-black/60 rounded-lg border border-white/5 shadow-inner flex items-center gap-2">
+                            <div class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div> Standby
+                        </span>
+                    </div>
+
+                    <div id="preview-empty" class="py-16 flex flex-col items-center justify-center text-center relative z-10">
+                        <div class="w-20 h-20 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center mb-6 bg-black/20">
+                            <i data-lucide="git-merge" class="w-8 h-8 text-zinc-600"></i>
+                        </div>
+                        <h4 class="text-white font-bold text-lg tracking-tight mb-2">Topology Pending</h4>
+                        <p class="text-zinc-500 text-sm max-w-sm leading-relaxed">Initialize a payload and provide objectives to generate the execution graph.</p>
+                    </div>
+
+                    <div id="preview-mesh" class="hidden flex-col md:flex-row items-stretch md:items-center gap-2 py-8 relative z-10 overflow-x-auto custom-scrollbar px-4">
+                        <!-- Nodes injected via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Ledger / History Section (Polished Layout) -->
+            <section class="animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
+                <div class="flex items-center justify-between mb-8 px-2">
+                    <div class="flex flex-col">
+                        <h3 class="font-display font-bold text-2xl text-white tracking-tight mb-1">Execution Ledger</h3>
+                        <p class="text-xs text-zinc-500">Recent architectural deployments</p>
+                    </div>
+                    <a href="/history" class="text-[11px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-5 py-2.5 rounded-xl border border-white/5 shadow-inner flex items-center gap-2">
+                        View Matrix <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+                
+                <div id="recent-workflows" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <!-- Skeleton Loaders -->
+                    <div class="glass-panel rounded-[24px] h-[180px] animate-pulse bg-white/[0.01]"></div>
+                    <div class="glass-panel rounded-[24px] h-[180px] animate-pulse bg-white/[0.01] hidden md:block"></div>
+                    <div class="glass-panel rounded-[24px] h-[180px] animate-pulse bg-white/[0.01] hidden xl:block"></div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+<script>
+    lucide.createIcons();
+
+    // ---------- Advanced Ambient Particle Engine ----------
+    (function(){
+        const container = document.getElementById('particle-engine');
+        if(!container) return;
+        const count = window.innerWidth < 768 ? 15 : 35;
+        for(let i=0;i<count;i++){
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.top = (80 + Math.random() * 20) + '%';
+            p.style.animationDuration = (8 + Math.random() * 15) + 's';
+            p.style.animationDelay = (Math.random() * 10) + 's';
+            
+            // Randomize colors between blue, purple, and cyan
+            const colors = ['#3b82f6', '#8b5cf6', '#06b6d4'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            p.style.background = color;
+            p.style.boxShadow = `0 0 ${10 + Math.random()*10}px 2px ${color}`;
+            
+            const size = Math.random() * 3 + 1;
+            p.style.width = size + 'px';
+            p.style.height = size + 'px';
+            
+            container.appendChild(p);
+        }
+    })();
+
+    // ---------- Dropzone & Document Verification Gate ----------
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+    const browseBtn = document.getElementById('browse-btn');
+    const fileStatus = document.getElementById('file-status');
+    const generateBtn = document.getElementById('generate-btn');
+    const masterForm = document.getElementById('master-generate-form');
+    
+    // HARD DISABLE INITIALLY - Await verification gate
+    generateBtn.disabled = true;
+
+    browseBtn.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    ['dragenter','dragover'].forEach(evt => {
+      dropzone.addEventListener(evt, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        dropzone.classList.add('drag-over');
+      });
+    });
+
+    ['dragleave','drop'].forEach(evt => {
+      dropzone.addEventListener(evt, (e) => {
+        e.preventDefault(); e.stopPropagation();
+        if(evt === 'dragleave' && e.target !== dropzone) return;
+        dropzone.classList.remove('drag-over');
+      });
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if(files && files.length > 0) {
+        const dt = new DataTransfer();
+        dt.items.add(files[0]);
+        fileInput.files = dt.files;
+        fileInput.dispatchEvent(new Event('change')); // Trigger Verification
+      }
+    });
+
+    fileInput.addEventListener('change', async () => {
+        if(!fileInput.files.length) return;
+        const file = fileInput.files[0];
+        
+        fileStatus.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin inline-block align-middle"></i> Intercepting Payload...';
+        fileStatus.classList.remove('hidden');
+        fileStatus.classList.replace('text-red-400', 'text-blue-400');
+        lucide.createIcons();
+
+        const fd = new FormData();
+        fd.append('file', file);
+
+        try {
+            const response = await fetch('/api/validate-document', { method: 'POST', body: fd });
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Validation failed');
+            }
+
+            if (data.warning === "DOCUMENT_TOO_SHORT") {
+                const proceed = confirm(`The uploaded document appears incomplete (${data.textLength} characters). Do you want to continue?`);
+                if (!proceed) {
+                    fileInput.value = '';
+                    fileStatus.classList.add('hidden');
+                    return;
+                }
+            }
+
+            // Display Document Ready Panel HUD
+            document.getElementById('dropzone').classList.add('hidden');
+            const readyPanel = document.getElementById('document-ready-panel');
+            readyPanel.classList.remove('hidden');
+            readyPanel.classList.add('flex', 'animate-in', 'fade-in', 'zoom-in-95', 'duration-500');
+            
+            // Populate HUD Metadata
+            document.getElementById('verified-document-id').value = data.documentId;
+            document.getElementById('doc-meta-name').textContent = data.metadata?.name || file.name;
+            document.getElementById('doc-meta-pages').textContent = data.metadata?.pages || '--';
+            document.getElementById('doc-meta-words').textContent = data.metadata?.words || '--';
+            document.getElementById('doc-meta-type').textContent = data.metadata?.fileType || '--';
+            
+            // UNLOCK WORKFLOW GENERATION
+            generateBtn.disabled = false;
+
+        } catch (err) {
+            fileStatus.innerHTML = `<i data-lucide="alert-triangle" class="w-3.5 h-3.5 inline-block align-middle"></i> ${err.message}`;
+            fileStatus.classList.replace('text-blue-400', 'text-red-400');
+            generateBtn.disabled = true;
+            lucide.createIcons();
+        }
+    });
+
+    // ---------- Auto-growing textarea ----------
+    const textarea = document.getElementById('prompt-textarea');
+    
+    function autoGrow(){
+      textarea.style.height = 'auto';
+      // Unlimited expansion logic
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+    textarea.addEventListener('input', autoGrow);
+    autoGrow();
+
+    // ---------- Prompt chips ----------
+    document.querySelectorAll('.prompt-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        textarea.value = chip.dataset.prompt;
+        textarea.focus();
+        autoGrow();
+      });
+    });
+
+    // ---------- Dynamic Graph Topology Generator ----------
+    const ctaLabel = document.getElementById('cta-label');
+    const previewEmpty = document.getElementById('preview-empty');
+    const previewMesh = document.getElementById('preview-mesh');
+    const previewStatus = document.getElementById('preview-status');
+    const stages = ['Ingest','Semantic Route','Analyze','Synthesize'];
+    
+    function buildMesh(stageArray = stages){
+      previewMesh.innerHTML = '';
+      previewMesh.classList.remove('hidden');
+      previewMesh.classList.add('flex');
+      
+      stageArray.forEach((stage, i) => {
+        const node = document.createElement('div');
+        node.className = 'pipeline-node flex-1 min-w-[140px] rounded-2xl p-5 text-center bg-black/50 backdrop-blur-md shadow-inner';
+        node.style.animationDelay = `${i * 0.15}s`;
+        node.innerHTML = `
+            <div class="w-8 h-8 mx-auto rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mb-3">
+                <i data-lucide="cpu" class="w-4 h-4 text-blue-400"></i>
+            </div>
+            <p class="text-[9px] font-mono text-zinc-500 mb-1 uppercase tracking-widest">Node 0${i+1}</p>
+            <p class="font-bold text-sm text-white truncate px-2 tracking-tight">${stage}</p>
+        `;
+        previewMesh.appendChild(node);
+        
+        if(i < stageArray.length - 1){
+          const connector = document.createElement('div');
+          connector.className = 'pipeline-edge';
+          previewMesh.appendChild(connector);
+        }
+      });
+      lucide.createIcons();
+    }
+
+    function animateMesh(){
+      const nodes = previewMesh.querySelectorAll('.pipeline-node');
+      const connectors = previewMesh.querySelectorAll('.pipeline-edge');
+      nodes.forEach((node, i) => {
+        setTimeout(() => {
+          node.classList.add('pulse-active');
+          setTimeout(() => node.classList.remove('pulse-active'), 800);
+          if(connectors[i]){
+            setTimeout(() => connectors[i].classList.add('data-flow'), 400);
+          }
+        }, i * 600);
+      });
+    }
+
+    // ---------- Master API Integration ----------
+    masterForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (generateBtn.disabled) return;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); 
+
+        generateBtn.disabled = true;
+        ctaLabel.innerHTML = 'Compiling Architecture...';
+        
+        // Update Preview Status
+        previewStatus.innerHTML = '<div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div> Generating';
+        previewStatus.className = "font-mono text-[10px] font-bold uppercase tracking-widest text-blue-400 px-4 py-2 bg-blue-900/10 rounded-lg border border-blue-500/30 shadow-inner flex items-center gap-2";
+        previewEmpty.classList.add('hidden');
+        
+        buildMesh();
+        animateMesh();
+
+        try {
+            const response = await fetch('/api/generate-workflow', { 
+                method: 'POST', 
+                body: new FormData(masterForm),
+                signal: controller.signal 
+            });
+            
+            const workflowData = await response.json();
+            if (!response.ok) throw new Error(workflowData.error || "Server failed");
+            
+            localStorage.setItem('meshWorkflow', JSON.stringify(workflowData.workflow || workflowData));
+            
+            if (workflowData.workflow?.steps && Array.isArray(workflowData.workflow.steps)) {
+                buildMesh(workflowData.workflow.steps.map(s => s.taskName || s.name || 'Compute Node'));
+                animateMesh();
+            }
+
+            ctaLabel.textContent = 'Transferring to OS...';
+            previewStatus.innerHTML = '<div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div> Ready';
+            previewStatus.classList.replace('text-blue-400', 'text-green-400');
+            previewStatus.classList.replace('bg-blue-900/10', 'bg-green-900/10');
+            previewStatus.classList.replace('border-blue-500/30', 'border-green-500/30');
+            
+            setTimeout(() => { window.location.href = '/builder'; }, 1000);
+
+        } catch (error) {
+            alert("Compilation Error: " + (error.name === 'AbortError' ? 'Server took too long.' : error.message));
+            ctaLabel.textContent = 'Compile & Architect Pipeline';
+            generateBtn.disabled = false;
+            
+            previewStatus.innerHTML = '<div class="w-2 h-2 rounded-full bg-red-500"></div> Failed';
+            previewStatus.classList.replace('text-blue-400', 'text-red-400');
+            previewStatus.classList.replace('bg-blue-900/10', 'bg-red-900/10');
+            previewStatus.classList.replace('border-blue-500/30', 'border-red-500/30');
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    });
+
+    // ---------- Premium Ledger (Recent Workflows) ----------
+    const STATUS_STYLES = {
+      COMPLETED: { dot: 'bg-green-500 shadow-[0_0_8px_#22c55e]', text: 'text-green-400' },
+      FAILED:    { dot: 'bg-red-500 shadow-[0_0_8px_#ef4444]', text: 'text-red-400' },
+      CANCELLED: { dot: 'bg-red-500 shadow-[0_0_8px_#ef4444]', text: 'text-red-400' },
+      RUNNING:   { dot: 'bg-blue-500 shadow-[0_0_8px_#3b82f6] animate-pulse', text: 'text-blue-400' }
+    };
+    
+    function timeAgo(dateStr){
+      if(!dateStr) return '';
+      const diffMs = Date.now() - new Date(dateStr).getTime();
+      const mins = Math.floor(diffMs / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      const days = Math.floor(hrs / 24);
+      return `${days}d ago`;
+    }
+
+    function shortModel(model){
+      if(!model) return '';
+      const name = model.split('/')[1] || model;
+      return name.length > 14 ? name.slice(0, 14) + '...' : name;
+    }
+
+    function safeText(str) {
+        if (!str || typeof str !== 'string') return '';
+        return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+
+    async function loadRecentWorkflows(){
+      const container = document.getElementById('recent-workflows');
+      try {
+        const history = await MeshFlowAPI.getHistory();
+        const runs = Array.isArray(history) ? history : (history?.data || []);
+        
+        if (!runs.length) {
+          container.innerHTML = `
+            <div class="col-span-full glass-panel border-dashed border-white/10 py-16 text-center rounded-[28px] bg-black/40">
+              <div class="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center mx-auto mb-5 bg-white/5 shadow-inner"><i data-lucide="database" class="w-6 h-6 text-zinc-600"></i></div>
+              <h4 class="text-white font-bold text-lg mb-2 tracking-tight">Ledger Empty</h4>
+              <p class="text-zinc-500 text-sm mb-6 max-w-sm mx-auto">No architectural deployments found in the database layer.</p>
+              <button onclick="document.getElementById('prompt-textarea').focus()" class="text-[11px] font-bold text-black bg-white hover:bg-zinc-200 px-6 py-3 rounded-xl uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)]">Initialize First Run</button>
+            </div>`;
+          lucide.createIcons();
+          return;
+        }
+        
+        container.innerHTML = runs.slice(0, 6).map(run => {
+          const style = STATUS_STYLES[run.status] || STATUS_STYLES.RUNNING;
+          const models = (run.modelsUsed || []).slice(0, 2);
+          
+          return `
+            <div class="glass-panel rounded-[24px] p-6 flex flex-col h-[180px] cursor-pointer group hover:border-white/20 hover:bg-white/[0.02] shadow-lg hover:shadow-2xl transition-all relative overflow-hidden" onclick="window.location.href='/mission-control?id=${run.executionId}'">
+              
+              <!-- Hover Gradient -->
+              <div class="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              
+              <div class="relative z-10 flex items-start justify-between mb-4">
+                <span class="inline-flex items-center gap-2 text-[10px] font-bold font-mono uppercase tracking-widest ${style.text} bg-black/40 px-2.5 py-1 rounded-md border border-white/5">
+                  <span class="w-1.5 h-1.5 rounded-full ${style.dot}"></span>${run.status.toLowerCase()}
+                </span>
+                <div class="flex gap-1.5">
+                  ${models.map(m => `<span class="font-mono text-[9px] px-2 py-1 rounded-md bg-black/60 border border-white/5 text-zinc-400 group-hover:text-zinc-300 transition-colors uppercase tracking-wider">${shortModel(m)}</span>`).join('')}
+                </div>
+              </div>
+              
+              <h4 class="relative z-10 font-bold text-white mb-1 truncate tracking-tight text-lg group-hover:text-blue-400 transition-colors">${safeText(run.workflowName || 'Untitled matrix')}</h4>
+              <p class="relative z-10 text-xs text-zinc-500 font-mono mb-4 truncate">${run.executionId.split('-')[0]}...</p>
+              
+              <div class="relative z-10 flex items-center justify-between text-xs font-mono border-t border-white/5 pt-4 mt-auto">
+                <div class="flex flex-col"><span class="text-[9px] uppercase tracking-widest text-zinc-600 mb-0.5">Cost</span><span class="text-white font-bold">$${(run.totalCost || 0).toFixed(4)}</span></div>
+                <div class="flex flex-col"><span class="text-[9px] uppercase tracking-widest text-zinc-600 mb-0.5">Time</span><span class="text-zinc-300">${((run.totalLatency || 0) / 1000).toFixed(1)}s</span></div>
+                <div class="flex flex-col text-right"><span class="text-[9px] uppercase tracking-widest text-zinc-600 mb-0.5">Age</span><span class="text-zinc-500">${timeAgo(run.startedAt)}</span></div>
+              </div>
+            </div>`;
+        }).join('');
+        lucide.createIcons();
+      } catch (err) {
+        console.error('[Recent Workflows] failed to load:', err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadRecentWorkflows);
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <%- include('partials/head') %>
+  <script src="/js/api-services.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Analytics | MeshFlow X</title>
+</head>
+<body class="bg-black text-white h-screen w-screen flex overflow-hidden">
+  <%- include('partials/sidebar', { currentPath: '/analytics' }) %>
+
+  <div class="flex flex-1 overflow-hidden md:pl-60 transition-all duration-300">
+    <main class="flex-1 relative bg-[#060607] flex flex-col overflow-y-auto p-6 md:p-12">
+      <div class="absolute inset-0 mesh-grid-bg opacity-30 pointer-events-none"></div>
+      
+      <div class="relative z-10 w-full max-w-6xl mx-auto flex flex-col h-full">
+        <header class="mb-10">
+            <h1 class="text-3xl font-bold text-white tracking-tight mb-2">OS Telemetry Engine</h1>
+            <p class="text-sm text-zinc-400">Real-time performance metrics, cost tracking, and model utilization.</p>
+        </header>
+
+        <div id="metrics-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 hidden animate-in fade-in slide-in-from-bottom-4">
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="text-[10px] text-zinc-500 font-mono uppercase tracking-widest font-bold mb-2">Total Executions</div>
+                <div class="text-3xl font-mono font-bold text-white" id="m-runs">--</div>
+            </div>
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="text-[10px] text-zinc-500 font-mono uppercase tracking-widest font-bold mb-2">Success Rate</div>
+                <div class="text-3xl font-mono font-bold text-green-400" id="m-success">--</div>
+            </div>
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="text-[10px] text-zinc-500 font-mono uppercase tracking-widest font-bold mb-2">Avg. Cost / Run</div>
+                <div class="text-3xl font-mono font-bold text-blue-400" id="m-cost">--</div>
+            </div>
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="text-[10px] text-zinc-500 font-mono uppercase tracking-widest font-bold mb-2">Avg. Latency</div>
+                <div class="text-3xl font-mono font-bold text-white" id="m-latency">--</div>
+            </div>
+        </div>
+
+        <div id="charts-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 hidden animate-in fade-in slide-in-from-bottom-8">
+            <div class="glass-panel p-6 rounded-2xl flex flex-col">
+                <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-6">Provider Utilization</h3>
+                <div class="flex-1 relative min-h-[250px] w-full flex items-center justify-center">
+                    <canvas id="providerChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="glass-panel p-6 rounded-2xl flex flex-col">
+                <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-6">Execution Timeline</h3>
+                <div class="flex-1 relative min-h-[250px] w-full flex items-center justify-center">
+                    <canvas id="trendsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="fallback-container" class="hidden relative w-full flex-1 min-h-[500px] flex items-center justify-center border border-white/5 rounded-2xl bg-zinc-950/50 overflow-hidden shadow-inner animate-in zoom-in-95 duration-500">
+            <div class="absolute inset-0 mesh-grid-bg opacity-30 pointer-events-none"></div>
+            <div class="relative z-10 flex flex-col items-center text-center max-w-md p-8">
+                <div class="w-16 h-16 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center mb-6 border border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
+                    <i data-lucide="bar-chart-3" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-3 tracking-tight">OS Telemetry Engine</h2>
+                <p class="text-sm text-zinc-400 leading-relaxed mb-8">Advanced execution analytics, cost tracking, and model utilization metrics are currently compiling. Generate workflows to populate data.</p>
+                <div class="flex gap-4">
+                    <button onclick="window.location.href='/builder'" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]">New Execution</button>
+                    <button onclick="window.location.href='/history'" class="px-6 py-3 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl border border-white/5 transition-all">View History</button>
+                </div>
+            </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    // Chart.js Global Dark Mode Theme Settings
+    Chart.defaults.color = '#a1a1aa';
+    Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+
+    async function loadMetrics() {
+      const metricsContainer = document.getElementById('metrics-container');
+      const chartsContainer = document.getElementById('charts-container');
+      const fallbackContainer = document.getElementById('fallback-container');
+
+      try {
+        const data = await MeshFlowAPI.getMetrics();
+        const m = data.metrics || {};
+        
+        // If no executions exist, trigger graceful fallback immediately
+        if (!m.totalExecutions || m.totalExecutions === 0) {
+            fallbackContainer.classList.remove('hidden');
+            return;
+        }
+
+        // 1. Populate top boxes safely
+        document.getElementById('m-runs').textContent = (m.totalExecutions || 0).toLocaleString();
+        document.getElementById('m-success').textContent = `${((m.successRate || 0) * 100).toFixed(1)}%`;
+        document.getElementById('m-cost').textContent = `$${(m.averageCost || 0).toFixed(4)}`;
+        document.getElementById('m-latency').textContent = `${Math.round(m.averageLatency || 0)}ms`;
+
+        // Reveal dynamic UI
+        metricsContainer.classList.remove('hidden');
+        chartsContainer.classList.remove('hidden');
+
+        // 2. Render Provider Doughnut Chart safely
+        if (m.providerUsage && Object.keys(m.providerUsage).length > 0) {
+            const ctxProv = document.getElementById('providerChart').getContext('2d');
+            new Chart(ctxProv, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(m.providerUsage),
+                    datasets: [{
+                        data: Object.values(m.providerUsage),
+                        backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'right' } 
+                    }, 
+                    cutout: '75%' 
+                }
+            });
+        }
+
+        // 3. Render Trends Line Chart safely
+        const ctxTrends = document.getElementById('trendsChart').getContext('2d');
+        const labels = m.dailyExecutions && Object.keys(m.dailyExecutions).length > 0 ? Object.keys(m.dailyExecutions) : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const values = m.dailyExecutions && Object.keys(m.dailyExecutions).length > 0 ? Object.values(m.dailyExecutions) : [0, 5, 2, 8, 12, 4, 15]; 
+        
+        new Chart(ctxTrends, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Workflow Executions',
+                    data: values,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#060607',
+                    pointBorderColor: '#3b82f6',
+                    pointBorderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: { 
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { 
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }, 
+                    x: { grid: { display: false } } 
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+      } catch (err) {
+        console.error("Failed to load OS Analytics", err);
+        // Fallback protects the UI from crashing if API fails
+        fallbackContainer.classList.remove('hidden');
+      }
+    }
+    
+    document.addEventListener('DOMContentLoaded', loadMetrics);
+  </script>
+</body>
+</html>

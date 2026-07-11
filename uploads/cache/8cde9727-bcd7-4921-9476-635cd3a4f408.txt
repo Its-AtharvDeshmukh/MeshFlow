@@ -1,0 +1,1 @@
+[SYSTEM EVENT: Uploaded document contains no selectable text. Visual/OCR processing required by AI nodes.]

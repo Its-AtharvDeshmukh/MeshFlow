@@ -1,0 +1,7 @@
+Here is a formatted list of the summarized bullet points for easy reading:
+
+- Text extraction methods depend on the document's format (e.g., PDF, Word, Image).
+- For standard PDF documents, Python libraries like `PyPDF2`, `pdfminer.six`, or `pdfplumber` are recommended.
+- Word (DOCX) documents can be processed using the `python-docx` library to extract text from paragraphs.
+- Extracting text from images or scanned PDFs requires Optical Character Recognition (OCR) tools, such as `pytesseract`, often used with image processing libraries like `PIL` or PDF-to-image converters like `pdf2image`.
+- Users must ensure all necessary libraries and tools (e.g., Tesseract for OCR) are installed and correctly configured for successful text extraction.

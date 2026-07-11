@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <%- include('partials/head') %>
+  <title>Templates | MeshFlow X</title>
+</head>
+<body class="bg-black text-white h-screen w-screen flex overflow-hidden">
+  <%- include('partials/sidebar', { currentPath: '/templates' }) %>
+
+  <div class="flex flex-1 overflow-hidden md:pl-60 transition-all duration-300">
+    <main class="flex-1 relative bg-[#060607] flex items-center justify-center p-6 md:p-12">
+        <div class="absolute inset-0 mesh-grid-bg opacity-30 pointer-events-none"></div>
+        
+        <div class="relative z-10 flex flex-col items-center text-center max-w-md p-10 glass-panel rounded-[28px] animate-in zoom-in-95 duration-500">
+            <div class="w-16 h-16 bg-purple-500/10 text-purple-400 rounded-2xl flex items-center justify-center mb-6 border border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.15)]">
+                <i data-lucide="library" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-white mb-3 tracking-tight">OS Template Library</h2>
+            <p class="text-sm text-zinc-400 leading-relaxed mb-8">Pre-compiled, enterprise-grade execution pipelines are currently indexing. The Template Library will deploy in OS v1.2.</p>
+            <button onclick="window.location.href='/builder'" class="w-full py-3.5 bg-white text-black font-bold text-xs rounded-xl shadow-[0_8px_16px_rgba(255,255,255,0.1)] hover:scale-[1.02] transition-all duration-300">
+                Architect Custom Workflow
+            </button>
+        </div>
+    </main>
+  </div>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

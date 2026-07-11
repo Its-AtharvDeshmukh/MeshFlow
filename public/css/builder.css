@@ -1,0 +1,78 @@
+#canvas-wrapper {
+  background-color: #0B0B0E;
+  background-image: radial-gradient(#27272a 1px, transparent 1px);
+  background-size: 32px 32px;
+  cursor: default;
+  outline: none;
+}
+
+#nodes-canvas {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0; left: 0;
+  transform-origin: 0 0;
+}
+
+/* Nodes */
+.node-card {
+  position: absolute;
+  width: 260px;
+  background: rgba(9, 9, 11, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px -10px rgba(0,0,0,0.8), inset 0 1px 0 0 rgba(255,255,255,0.05);
+  transition: box-shadow 0.2s, border-color 0.2s;
+  pointer-events: auto;
+  user-select: none;
+  z-index: 10;
+}
+
+.node-card:hover { border-color: rgba(255,255,255,0.2); z-index: 20; }
+
+.node-card.is-selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6, 0 15px 40px -10px rgba(59, 130, 246, 0.3);
+  z-index: 30;
+}
+
+.node-card.is-invalid {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px #ef4444, 0 15px 40px -10px rgba(239, 68, 68, 0.2);
+}
+
+/* Connection Handles */
+.node-handle {
+  width: 14px; height: 14px;
+  background: #18181B;
+  border: 2px solid #52525B;
+  border-radius: 50%;
+  position: absolute; top: 50%; transform: translateY(-50%);
+  transition: all 0.2s;
+  cursor: crosshair;
+  z-index: 40;
+}
+.node-handle:hover {
+  border-color: #3b82f6; background: #3b82f6;
+  transform: translateY(-50%) scale(1.3);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+.node-handle.left { left: -7px; }
+.node-handle.right { right: -7px; }
+
+/* SVG Edges */
+.builder-edge {
+  fill: none;
+  stroke: #52525b;
+  stroke-width: 2.5;
+  transition: stroke 0.3s;
+}
+.builder-edge:hover { stroke: #3b82f6; stroke-width: 3.5; cursor: pointer; }
+.temp-edge { stroke: #3b82f6; stroke-dasharray: 6 6; animation: dash 1s linear infinite; }
+@keyframes dash { to { stroke-dashoffset: -12; } }
+
+
+.report-tab { transition: all 0.2s ease; }
+.report-tab.active-tab { color: white; border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+.tab-content { animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
