@@ -1,4 +1,33 @@
-__MACOSX/
+# Dependencies
+node_modules/
+
+# Environment Variables
+.env
+.env.*
+
+# Uploads
+uploads/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS Files
 .DS_Store
-    .env 
-  node_modules
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary
+tmp/
+temp/
+
+# Build
+dist/
+build/
+
+# Cache
+.cache/
