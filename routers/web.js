@@ -18,4 +18,12 @@ router.get('/mission-control/:id', (req, res) => {
     res.render('mission-control', { title: 'Mission Control', executionId: req.params.id });
 });
 
+router.get('/how-it-works', (req, res) => {
+    res.render('how-it-works', { currentPath: '/how-it-works' });
+});
+
+router.get('/vision', (req, res) => {
+    res.render('vision', { currentPath: '/vision' });
+});
+
 module.exports = router;

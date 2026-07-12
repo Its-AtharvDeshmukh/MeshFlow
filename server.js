@@ -14,6 +14,10 @@ eventBus.on('workflow.started', (data) => console.log(`[OS LIFECYCLE] Pipeline E
 eventBus.on('workflow.cancelled', (data) => console.log(`[OS LIFECYCLE] Pipeline Halted: ${data.workflowId}`));
 
 const app = express();
+
+// [PRODUCTION TWEAK]: Required for Render.com/Heroku load balancer support
+app.set('trust proxy', 1); 
+
 const PORT = process.env.PORT || 3000;
 
 app.set('view engine', 'ejs');
@@ -32,11 +36,11 @@ let server;
 
 const startServer = async () => {
     try {
-        await verifyModels(); 
+        await verifyModels();
         await connectDB();
-        server = app.listen(PORT, () => console.log(`🚀 MeshFlow X OS running on http://localhost:${PORT}`));
+        server = app.listen(PORT, () => console.log(`  MeshFlow X OS running on http://localhost:${PORT}`));
     } catch (err) {
-        console.error("Failed to start server:", err);
+        console.error("[SYSTEM] Failed to start server:", err);
         process.exit(1);
     }
 };
@@ -46,11 +50,20 @@ const shutdown = () => {
     if (server) {
         server.close(async () => {
             console.log("[SYSTEM] HTTP Server closed.");
-            await mongoose.connection.close();
-            console.log("[SYSTEM] Database connection closed.");
+            if (mongoose.connection.readyState === 1) {
+                await mongoose.connection.close();
+                console.log("[SYSTEM] Database connection closed.");
+            }
             process.exit(0);
         });
-        setTimeout(() => process.exit(1), 10000);
+
+        // Failsafe timeout to force kill if connections hang
+        setTimeout(() => {
+            console.error("[SYSTEM] Shutdown timed out. Forcing exit.");
+            process.exit(1);
+        }, 10000);
+    } else {
+        process.exit(0);
     }
 };
 

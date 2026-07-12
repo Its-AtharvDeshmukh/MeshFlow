@@ -22,25 +22,21 @@
       border: 1px solid var(--border-light);
       box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
-
     .mesh-grid-bg {
       background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
       background-size: 24px 24px;
     }
-
     /* Cinematic Glows */
     .glow-bg {
       position: absolute; width: 600px; height: 600px; filter: blur(120px); opacity: 0.15; pointer-events: none; border-radius: 50%;
     }
     .glow-blue { top: -100px; left: -100px; background: #3b82f6; }
     .glow-purple { bottom: -200px; right: -100px; background: #8b5cf6; }
-
     /* Custom Scrollbars */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
-
     /* Self-Healing Flash Animation */
     @keyframes heal-flash {
       0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.8); }
@@ -48,7 +44,6 @@
       100% { box-shadow: 0 0 20px 0px rgba(34, 197, 94, 0.1); border-color: var(--border-light); }
     }
     .animate-heal { animation: heal-flash 2s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-
     /* Intelligence Drawer */
     #intelligence-drawer {
       transform: translateX(100%);
@@ -58,7 +53,6 @@
     
     /* Progress Bars */
     .score-bar-fill { transition: width 1s cubic-bezier(0.16, 1, 0.3, 1); }
-
     /* Output Stream Box */
     .water-output {
         background: rgba(15, 23, 42, 0.4);
@@ -70,7 +64,6 @@
   </style>
 </head>
 <body class="flex overflow-hidden relative h-screen w-screen">
-
 <!-- Background Ambience -->
 <div class="fixed inset-0 z-0 pointer-events-none">
   <div class="absolute inset-0 bg-[#040405]"></div>
@@ -78,9 +71,7 @@
   <div class="glow-bg glow-blue"></div>
   <div class="glow-bg glow-purple"></div>
 </div>
-
 <%- include('partials/sidebar', { currentPath: '/mission-control' }) %>
-
 <div class="flex flex-1 z-10 overflow-hidden md:pl-60 h-full w-full">
     
     <!-- MAIN COMMAND CANVAS -->
@@ -202,7 +193,6 @@
             </div>
         </header>
         
-        <!-- REDESIGNED TABS (From Code 2) -->
         <div class="px-8 border-b border-white/5 flex gap-6 overflow-x-auto hide-scrollbar bg-black/20 z-10 shrink-0">
             <button onclick="switchModalTab('overview')" id="tab-btn-overview" class="modal-tab active py-4 text-[11px] font-bold text-white border-b-2 border-white transition-all whitespace-nowrap">Overview</button>
             <button onclick="switchModalTab('detailed')" id="tab-btn-detailed" class="modal-tab py-4 text-[11px] font-bold text-zinc-500 border-b-2 border-transparent hover:text-zinc-300 transition-all whitespace-nowrap">Synthesized Report</button>
@@ -226,7 +216,6 @@
                 <div id="markdown-container" class="prose prose-invert prose-sm max-w-4xl font-sans prose-headings:font-bold prose-headings:tracking-tight prose-a:text-blue-400 prose-pre:bg-[#060608] prose-pre:border prose-pre:border-white/10 prose-pre:shadow-inner prose-img:rounded-xl"></div>
             </div>
 
-            <!-- REDESIGNED: Pipeline Flow Tab -->
             <div id="modal-tab-flow" class="tab-pane hidden animate-in fade-in duration-300">
                 <div class="max-w-4xl">
                     <h2 class="text-xl font-bold text-white mb-2">Knowledge Progression</h2>
@@ -235,7 +224,6 @@
                 </div>
             </div>
             
-            <!-- REDESIGNED: Final AI Output Tab -->
             <div id="modal-tab-finalout" class="tab-pane hidden animate-in fade-in duration-300">
                 <div class="max-w-4xl">
                     <h2 class="text-xl font-bold text-white mb-2">Pre-Synthesis Output</h2>
@@ -251,7 +239,6 @@
             <div id="modal-tab-models" class="tab-pane hidden animate-in fade-in duration-300">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5" id="models-grid"></div>
             </div>
-
         </div>
 
         <footer class="p-4 px-6 md:px-8 border-t border-white/5 bg-black/50 backdrop-blur-2xl flex flex-col md:flex-row justify-between items-center relative z-10 shrink-0 gap-4">
@@ -280,15 +267,57 @@ const safeText = (val) => {
     return String(val).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
 };
 
+// [PRODUCTION FIX]: Bugs 1 & 8 - Dynamic JSON-to-Markdown Failsafe
+const jsonToMarkdown = (obj, depth = 2) => {
+    if (typeof obj !== 'object' || obj === null) return String(obj);
+    let md = '';
+    for (const [key, val] of Object.entries(obj)) {
+        const cleanKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).replace(/_/g, ' ');
+
+        if (Array.isArray(val)) {
+            md += `\n${'#'.repeat(Math.min(depth, 4))} ${cleanKey}\n`;
+            val.forEach(item => {
+                if (typeof item === 'object' && item !== null) {
+                    md += jsonToMarkdown(item, depth + 1) + '\n';
+                } else {
+                    md += `* ${item}\n`;
+                }
+            });
+        } else if (typeof val === 'object' && val !== null) {
+            md += `\n${'#'.repeat(Math.min(depth, 4))} ${cleanKey}\n`;
+            md += jsonToMarkdown(val, depth + 1);
+        } else {
+            md += `**${cleanKey}:** ${val}\n\n`;
+        }
+    }
+    return md;
+};
+
 const parseHTML = (md) => {
     if (!md) return '';
-    const raw = typeof marked.parse === 'function' ? marked.parse(md) : marked(md);
+    let contentToParse = md;
+
+    // Failsafe: Intercept raw JSON from backend and convert to beautiful enterprise Markdown
+    try {
+        let cleanStr = md.trim();
+        if (cleanStr.startsWith('```json')) cleanStr = cleanStr.replace(/^```json/, '').replace(/```$/, '').trim();
+        else if (cleanStr.startsWith('```')) cleanStr = cleanStr.replace(/^```/, '').replace(/```$/, '').trim();
+
+        if (cleanStr.startsWith('{') || cleanStr.startsWith('[')) {
+            const parsed = JSON.parse(cleanStr);
+            if (typeof parsed === 'object' && parsed !== null) {
+                contentToParse = jsonToMarkdown(parsed);
+            }
+        }
+    } catch (e) {
+        // Not valid JSON, proceed as standard Markdown
+    }
+
+    const raw = typeof marked.parse === 'function' ? marked.parse(contentToParse) : marked(contentToParse);
     return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(raw) : raw;
 };
 
 // Error mapping strictly to backend codes
-// In views/mission-control.ejs, update the formatErrorCode map:
-
 const formatErrorCode = (code) => {
     if(!code) return "Execution Failed";
     const map = {
@@ -320,14 +349,11 @@ async function startPolling(id) {
             if(state.finalOutput || state.counterfactuals) {
                 renderFinalOutputCard(state);
                 
-                // Show Top Action Button
                 const topBtn = document.getElementById('top-action-bar');
                 if (topBtn) {
                     topBtn.classList.remove('hidden');
                     topBtn.classList.add('block', 'animate-in', 'fade-in', 'duration-700');
                 }
-
-                // 4. Final Report Auto-Render exactly once
                 if (currentStatus === 'COMPLETED' && !reportOpened) {
                     reportOpened = true;
                     setTimeout(openFinalReportModal, 1500); 
@@ -354,7 +380,6 @@ async function startPolling(id) {
 window.addEventListener('beforeunload', () => { if (pollTimer) clearTimeout(pollTimer); });
 
 function updateUI(state) {
-    // 1. HEADER & GLOBAL METRICS
     document.getElementById('mc-title').textContent = safeText(state.workflowName || 'Execution Stream');
     const isFailed = state.status === 'FAILED';
     const isCompleted = state.status === 'COMPLETED';
@@ -376,13 +401,12 @@ function updateUI(state) {
         statusEl.textContent = state.status === 'SYNTHESIZING' ? "Synthesizing Final Report..." : "Executing DAG Router...";
         progressEl.className = "text-3xl font-mono text-blue-400 font-bold";
     }
-    progressEl.textContent = `${Number(state.progress) || 0}%`;
 
+    progressEl.textContent = `${Number(state.progress) || 0}%`;
     const metrics = state.metrics || {};
     document.getElementById('metric-cost').textContent = `$${(Number(metrics.totalCost) || 0).toFixed(4)}`;
     document.getElementById('metric-latency').textContent = `${Number(metrics.totalLatency) || 0}ms`;
 
-    // 2. INTELLIGENCE FEED (Backend Events Only)
     const feed = document.getElementById('intelligence-feed');
     const events = state.intelligenceEvents || [];
     
@@ -392,7 +416,6 @@ function updateUI(state) {
             const timeStr = new Date(ev.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
             let icon = "info"; let color = "text-zinc-400";
             
-            // Map types from backend logic securely
             if(ev.type.includes("FAIL")) { icon = "x-circle"; color = "text-red-400"; }
             else if(ev.type.includes("COMPLETED") || ev.type.includes("SUCCESS")) { icon = "check-circle-2"; color = "text-green-400"; }
             else if(ev.type.includes("FALLBACK")) { icon = "shield-alert"; color = "text-yellow-400"; }
@@ -424,8 +447,6 @@ function updateUI(state) {
         feed.scrollTop = feed.scrollHeight;
     }
 
-    // 3. MAIN NODES PIPELINE (Strict JSON match to backend schema)
-    // SORTED BY DEPENDENCIES TO RENDER LINEARLY
     const rawNodes = state.nodes || [];
     const nodes = [...rawNodes].sort((a,b) => (a.dependencies?.length || 0) - (b.dependencies?.length || 0));
     
@@ -447,20 +468,30 @@ function updateUI(state) {
             } else if (status === 'COMPLETED') {
                 borderClass = 'border-white/10 bg-black/40 hover:bg-white/[0.04] transition-colors cursor-pointer';
                 statusBadge = '<span class="text-[10px] font-mono font-bold text-green-400 uppercase flex items-center gap-1.5"><i data-lucide="check" class="w-3 h-3"></i> Success</span>';
-                outputText = node.output ? safeText(node.output).substring(0, 140) + '...' : 'Data processed.';
+                
+                // UX Fix: Attempt to clean up JSON in preview stream
+                let rawOutput = node.output || '';
+                try {
+                    let cleanStr = rawOutput.trim();
+                    if (cleanStr.startsWith('```json')) cleanStr = cleanStr.replace(/^```json/, '').replace(/```$/, '').trim();
+                    if (cleanStr.startsWith('{') || cleanStr.startsWith('[')) {
+                        const parsed = JSON.parse(cleanStr);
+                        if (typeof parsed === 'object' && parsed !== null) rawOutput = "Structured Data Extracted (JSON -> Markdown).";
+                    }
+                } catch(e) {}
+                
+                outputText = rawOutput ? safeText(rawOutput).substring(0, 140) + '...' : 'Data processed.';
             } else if (status === 'FAILED') {
                 borderClass = 'border-red-500/20 bg-red-950/20';
                 statusBadge = '<span class="text-[10px] font-mono font-bold text-red-400 uppercase flex items-center gap-1.5"><i data-lucide="x" class="w-3 h-3"></i> Failed</span>';
                 outputText = `<span class="text-red-400">${safeText(node.error?.reason || 'Node execution failed.')}</span>`;
             }
 
-            // Routing logic strictly aligns with node.routing and node.routingAudit
             const providerName = node.provider || node.routing?.provider || 'Auto';
             const modelName = node.apiModel || node.routing?.model || 'Pending';
             
             let modelVisual = `<p class="text-[10px] font-mono text-zinc-400 mt-1">${safeText(providerName)} / <span class="text-white">${safeText(modelName)}</span></p>`;
             
-            // Self-Healing Representation
             if (isFallback && status === 'COMPLETED' && node.attemptHistory && node.attemptHistory.length > 1) {
                 borderClass += ' animate-heal';
                 const failedAttempt = node.attemptHistory[0];
@@ -520,7 +551,6 @@ function updateUI(state) {
     }
 }
 
-// 4. COUNTERFACTUAL DASHBOARD & ERRORS
 function renderFinalOutputCard(state) {
     const card = document.getElementById('final-output-card');
     
@@ -544,11 +574,9 @@ function renderFinalOutputCard(state) {
         return;
     }
 
-    if (!state.counterfactuals || !state.counterfactuals.meshOS) return; 
-
+    if (!state.counterfactuals || !state.counterfactuals.meshOS) return;
     const cf = state.counterfactuals;
     
-    // THE BENCHMARK BOX REMAINS EXACTLY AS IT WAS IN CODE 1 (Stacked rows to prevent overlaps)
     card.innerHTML = `
         <div class="w-full mt-6 animate-in fade-in slide-in-from-bottom-8 duration-700 glass-panel rounded-3xl p-6 relative overflow-hidden">
             <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[80px] rounded-full pointer-events-none"></div>
@@ -565,7 +593,6 @@ function renderFinalOutputCard(state) {
             </div>
 
             <div class="flex flex-col gap-3 mb-6 relative z-10">
-                <!-- GPT Benchmark -->
                 <div class="flex items-center justify-between bg-black/40 border border-white/5 p-4 rounded-2xl opacity-70 hover:opacity-100 transition-opacity">
                     <div>
                         <p class="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Only GPT-4o</p>
@@ -576,7 +603,6 @@ function renderFinalOutputCard(state) {
                     </div>
                 </div>
                 
-                <!-- Claude Benchmark -->
                 <div class="flex items-center justify-between bg-black/40 border border-white/5 p-4 rounded-2xl opacity-70 hover:opacity-100 transition-opacity">
                     <div>
                         <p class="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Only Claude-3.5</p>
@@ -587,7 +613,6 @@ function renderFinalOutputCard(state) {
                     </div>
                 </div>
                 
-                <!-- MeshFlow (Winner) -->
                 <div class="flex items-center justify-between bg-blue-900/10 border border-blue-500/30 p-4 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.1)] relative overflow-hidden group hover:bg-blue-900/20 transition-all cursor-default">
                     <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)] group-hover:w-1.5 transition-all"></div>
                     <div class="pl-2">
@@ -612,7 +637,6 @@ function renderFinalOutputCard(state) {
     `;
     lucide.createIcons();
     
-    // Safely populate modal to prevent errors from crashing the poll loop
     try {
         populateModalData(state);
     } catch(e) {
@@ -620,12 +644,10 @@ function renderFinalOutputCard(state) {
     }
 }
 
-// 5. INTELLIGENCE PANEL (MODEL DEBATE DRAWER)
 function openIntelligenceDrawer(nodeId) {
     if (!globalState) return;
     const node = globalState.nodes.find(n => n.id === nodeId);
     if (!node || !node.routingAudit) return;
-
     const drawer = document.getElementById('intelligence-drawer');
     const content = document.getElementById('drawer-content');
     
@@ -688,7 +710,6 @@ function openIntelligenceDrawer(nodeId) {
             </div>
         </div>
     `;
-
     drawer.classList.add('open');
     
     setTimeout(() => {
@@ -705,13 +726,9 @@ function closeIntelligenceDrawer() {
     document.getElementById('intelligence-drawer').classList.remove('open');
 }
 
-// ----------------------------------------------------
-// REDESIGNED MODAL DATA POPULATOR (From Code 2)
-// ----------------------------------------------------
 function populateModalData(state) {
     if (!state) return;
-
-    // Header Updates
+    
     const titleEl = document.getElementById('modal-title');
     if(titleEl) titleEl.textContent = safeText(state.workflowName || 'Final OS Report');
     
@@ -740,18 +757,30 @@ function populateModalData(state) {
     // 3. Pipeline Output Flow (Nodes sequence)
     const flowContainer = document.getElementById('ext-pipeline-flow');
     if(flowContainer) {
-        // Sort flow to ensure chronological dependency mapping
         const rawNodes = state.nodes || [];
         const flow = [...rawNodes].sort((a,b) => (a.dependencies?.length || 0) - (b.dependencies?.length || 0));
         
-        flowContainer.innerHTML = flow.map((step, i) => `
+        flowContainer.innerHTML = flow.map((step, i) => {
+            let cleanOutput = step.output || 'No output.';
+            try {
+                let tryJson = cleanOutput.trim();
+                if(tryJson.startsWith('```json')) tryJson = tryJson.replace(/^```json/, '').replace(/```$/, '').trim();
+                if (tryJson.startsWith('{') || tryJson.startsWith('[')) {
+                    const parsed = JSON.parse(tryJson);
+                    if(typeof parsed === 'object' && parsed !== null) {
+                        cleanOutput = JSON.stringify(parsed, null, 2); 
+                    }
+                }
+            } catch(e) {}
+
+            return `
             <div class="relative bg-black border border-white/10 p-5 rounded-xl mb-6 shadow-inner">
                 <div class="absolute -left-[35px] top-5 w-4 h-4 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]"></div>
                 <p class="text-[10px] font-mono font-bold text-blue-400 mb-1.5 tracking-widest uppercase">Step ${i+1}: ${safeText(step.apiModel || step.model)}</p>
                 <h3 class="text-sm font-bold text-white mb-3">${safeText(step.taskName || step.name)}</h3>
-                <div class="bg-white/[0.02] border border-white/5 p-4 rounded-lg text-[11px] text-zinc-400 font-mono max-h-48 overflow-y-auto custom-scrollbar break-words whitespace-pre-wrap">${safeText(step.output || 'No output.')}</div>
+                <div class="bg-white/[0.02] border border-white/5 p-4 rounded-lg text-[11px] text-zinc-400 font-mono max-h-48 overflow-y-auto custom-scrollbar break-words whitespace-pre-wrap">${safeText(cleanOutput)}</div>
             </div>
-        `).join('');
+        `}).join('');
     }
 
     // 4. Overview Grid
@@ -829,7 +858,6 @@ function populateModalData(state) {
             </div>
         `).join('');
     }
-
     lucide.createIcons();
 }
 

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <%- include('partials/head') %>
+    <title>How It Works | MeshFlow X</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --bg-apple: #000000;
+            --glass-bg: rgba(20, 20, 22, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f5f5f7;
+            --text-secondary: rgba(255, 255, 255, 0.6);
+        }
+
+        body {
+            background-color: var(--bg-apple);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Apple-style tight tracking */
+        .tracking-apple { letter-spacing: -0.04em; }
+        .tracking-apple-tight { letter-spacing: -0.06em; }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+        /* Ultra-premium frosted glass (visionOS style) */
+        .bento-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(48px);
+            -webkit-backdrop-filter: blur(48px);
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+            border-radius: 32px;
+            overflow: hidden;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .bento-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 40px 80px -12px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+
+        /* Ambient Aurora Backgrounds */
+        .aurora-container {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            overflow: hidden; z-index: 0; pointer-events: none;
+            background: #000;
+        }
+        .aurora-blob {
+            position: absolute; border-radius: 50%; filter: blur(140px); opacity: 0.25;
+            animation: aurora-float 20s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+        }
+        .blob-1 { background: #3b82f6; width: 50vw; height: 50vw; top: -10vw; left: -10vw; }
+        .blob-2 { background: #8b5cf6; width: 40vw; height: 40vw; top: 40vw; right: -10vw; animation-delay: -5s; }
+
+        @keyframes aurora-float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(5%, 10%) scale(1.1); }
+            100% { transform: translate(-5%, 5%) scale(0.95); }
+        }
+
+        .text-gradient-apple {
+            background: linear-gradient(135deg, #fff 0%, #93c5fd 50%, #c4b5fd 100%);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        /* Cinematic Reveals */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px) scale(0.98);
+            transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* Data Flow Animations */
+        .data-line {
+            position: relative;
+            background: rgba(255,255,255,0.05);
+            overflow: hidden;
+        }
+        .data-line::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(59,130,246,0.8), transparent);
+            transform: translateX(-100%);
+            animation: data-flow 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        .data-line.vertical::after {
+            background: linear-gradient(180deg, transparent, rgba(59,130,246,0.8), transparent);
+            transform: translateY(-100%);
+            animation: data-flow-vertical 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        @keyframes data-flow { 100% { transform: translateX(100%); } }
+        @keyframes data-flow-vertical { 100% { transform: translateY(100%); } }
+
+        /* DAG Node Pulse */
+        .dag-node {
+            position: relative;
+        }
+        .dag-node::before {
+            content: ''; position: absolute; inset: -2px; border-radius: inherit;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            z-index: -1; opacity: 0; transition: opacity 0.3s ease;
+        }
+        .dag-node:hover::before { opacity: 1; animation: pulse-border 2s infinite; }
+        @keyframes pulse-border {
+            0% { opacity: 0.5; filter: blur(4px); }
+            50% { opacity: 1; filter: blur(8px); }
+            100% { opacity: 0.5; filter: blur(4px); }
+        }
+
+        /* Roadmap Badges */
+        .vision-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 12px; border-radius: 100px;
+            background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #93c5fd; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+        }
+    </style>
+</head>
+<body class="flex overflow-hidden relative h-screen w-screen">
+
+    <!-- Cinematic Aurora Engine -->
+    <div class="aurora-container">
+        <div class="aurora-blob blob-1"></div>
+        <div class="aurora-blob blob-2"></div>
+        <div class="absolute inset-0 opacity-[0.12] mix-blend-overlay" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.7%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E');"></div>
+    </div>
+
+    <!-- Premium Top Navigation -->
+    <header class="fixed top-0 left-0 w-full z-[9999] bg-black/40 backdrop-blur-2xl border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='/'">
+                <div class="w-10 h-10 bg-black/50 border border-white/10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-colors relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <img src="/assets/mesh-logo.png" alt="MeshFlow X" class="w-6 h-6 object-contain relative z-10 filter drop-shadow-md">
+                </div>
+                <span class="text-white font-display font-bold tracking-tight text-xl drop-shadow-md">MeshFlow <span class="text-blue-500">X</span></span>
+            </div>
+            <nav class="hidden md:flex items-center gap-10">
+                <a href="/" class="text-zinc-400 hover:text-white transition-colors text-sm font-medium tracking-wide">Core Workspace</a>
+                <a href="/how-it-works" class="text-white font-bold text-sm tracking-wide flex items-center gap-2 drop-shadow-md">
+                    <div class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]"></div> How It Works
+                </a>
+                <a href="/vision" class="text-zinc-400 hover:text-white transition-colors text-sm font-medium tracking-wide flex items-center gap-1.5">
+                    Vision 2030 <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-1 relative flex flex-col overflow-y-auto custom-scrollbar h-full w-full z-10" id="scroll-container">
+        
+        <!-- SECTION 1: HERO -->
+        <section class="min-h-[95vh] flex flex-col items-center justify-center text-center px-6 pt-32 relative">
+            <div class="vision-badge mb-8 reveal shadow-2xl backdrop-blur-xl">
+                <i data-lucide="cpu" class="w-3.5 h-3.5"></i> MVP Architecture Walkthrough
+            </div>
+            
+            <h1 class="text-6xl md:text-[100px] font-bold tracking-apple-tight leading-[0.95] text-white mb-8 reveal delay-100 max-w-5xl drop-shadow-2xl">
+                The Anatomy of <br>
+                <span class="text-gradient-apple">MeshFlow X.</span>
+            </h1>
+            
+            <p class="text-white/50 text-xl md:text-3xl max-w-3xl mx-auto font-medium tracking-tight leading-relaxed mb-16 reveal delay-200">
+                Transforming static documents into <br class="hidden md:block">
+                dynamic, multi-model AI workflows.
+            </p>
+
+            <button onclick="document.getElementById('bento-problem').scrollIntoView({behavior: 'smooth'})" class="px-8 py-4 bg-white text-black hover:scale-105 text-sm font-bold rounded-full transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)] flex items-center gap-2 reveal delay-300">
+                Explore the Pipeline <i data-lucide="arrow-down" class="w-4 h-4"></i>
+            </button>
+        </section>
+
+        <!-- SECTION 2: THE PARADIGM SHIFT (PROBLEM VS SOLUTION) -->
+        <section id="bento-problem" class="py-32 px-6 max-w-[1400px] mx-auto w-full">
+            <div class="text-center mb-20 reveal">
+                <h2 class="text-4xl md:text-5xl font-bold tracking-apple text-white mb-4">The Paradigm Shift.</h2>
+                <p class="text-xl text-white/50 max-w-2xl mx-auto font-medium">Why single-prompt LLM interactions fail at enterprise scale.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Traditional AI -->
+                <div class="bento-card p-10 md:p-16 reveal flex flex-col items-center text-center group border-red-500/10">
+                    <div class="w-12 h-12 rounded-2xl bg-red-500/10 text-red-400 flex items-center justify-center mb-6">
+                        <i data-lucide="x-circle" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-3xl font-bold tracking-apple text-white mb-10">Traditional AI</h3>
+                    
+                    <div class="flex flex-col items-center w-full max-w-xs opacity-70 group-hover:opacity-100 transition-opacity">
+                        <div class="w-full p-4 bg-white/5 border border-white/10 rounded-xl font-mono text-xs">Upload Document</div>
+                        <div class="data-line vertical w-px h-8 my-2"></div>
+                        <div class="w-full p-4 bg-white/5 border border-white/10 rounded-xl font-mono text-xs">One Static Prompt</div>
+                        <div class="data-line vertical w-px h-8 my-2"></div>
+                        <div class="w-full p-4 bg-white/5 border border-white/10 rounded-xl font-mono text-xs border-red-500/30">Single Monolithic Model</div>
+                        <div class="data-line vertical w-px h-8 my-2"></div>
+                        <div class="w-full p-6 bg-white/5 border border-white/10 rounded-xl">
+                            <div class="w-full space-y-2">
+                                <div class="h-2 bg-white/10 rounded w-full"></div>
+                                <div class="h-2 bg-white/10 rounded w-5/6"></div>
+                                <div class="h-2 bg-white/10 rounded w-4/6"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-12 flex gap-4 justify-center text-xs font-bold uppercase tracking-widest text-red-400">
+                        <span>No Planning</span> • <span>No Routing</span>
+                    </div>
+                </div>
+
+                <!-- MeshFlow X -->
+                <div class="bento-card p-10 md:p-16 reveal delay-100 flex flex-col items-center text-center border-blue-500/20 bg-blue-900/5 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.1)_0,transparent_50%)] pointer-events-none"></div>
+                    <div class="w-12 h-12 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-6 relative z-10">
+                        <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="text-3xl font-bold tracking-apple text-white mb-10 relative z-10">MeshFlow X</h3>
+                    
+                    <div class="flex flex-col items-center w-full max-w-sm relative z-10">
+                        <div class="w-full p-4 bg-black/50 border border-white/10 rounded-xl font-mono text-xs shadow-inner">Upload & Parse</div>
+                        <div class="data-line vertical w-px h-6 my-1"></div>
+                        <div class="w-full p-4 bg-black/50 border border-purple-500/30 rounded-xl font-mono text-xs shadow-[0_0_15px_rgba(168,85,247,0.2)]">Generate Workflow (DAG)</div>
+                        <div class="data-line vertical w-px h-6 my-1"></div>
+                        
+                        <div class="flex w-full gap-3 justify-center">
+                            <div class="flex-1 p-3 bg-black/50 border border-blue-500/30 rounded-xl font-mono text-[10px] text-blue-300">GPT-4o<br>Node 1</div>
+                            <div class="flex-1 p-3 bg-black/50 border border-amber-500/30 rounded-xl font-mono text-[10px] text-amber-300">DeepSeek<br>Node 2</div>
+                            <div class="flex-1 p-3 bg-black/50 border border-emerald-500/30 rounded-xl font-mono text-[10px] text-emerald-300">Gemini<br>Node 3</div>
+                        </div>
+
+                        <div class="data-line vertical w-px h-6 my-1"></div>
+                        <div class="w-full p-4 bg-blue-600 border border-blue-400 rounded-xl font-bold text-xs text-white shadow-[0_0_20px_rgba(59,130,246,0.4)]">Executive Synthesis</div>
+                    </div>
+
+                    <div class="mt-12 flex gap-4 justify-center text-xs font-bold uppercase tracking-widest text-blue-400 relative z-10">
+                        <span>Dynamic Routing</span> • <span>Orchestration</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: LIVE EXAMPLE (DAG VISUALIZATION) -->
+        <section class="py-24 px-6 max-w-[1400px] mx-auto w-full">
+            <div class="bento-card p-10 md:p-20 reveal relative overflow-hidden bg-[#0a0a0c]">
+                <div class="text-center mb-20 relative z-10">
+                    <span class="vision-badge mb-4">Live Production Example</span>
+                    <h2 class="text-4xl md:text-5xl font-bold tracking-apple text-white">Hospital Management PDF</h2>
+                </div>
+
+                <!-- Animated DAG Pipeline -->
+                <div class="relative w-full max-w-4xl mx-auto z-10 flex flex-col items-center">
+                    
+                    <!-- Ingestion -->
+                    <div class="dag-node w-64 bg-white/5 border border-white/10 rounded-3xl p-5 text-center z-10 backdrop-blur-md">
+                        <i data-lucide="file-text" class="w-6 h-6 text-white/50 mx-auto mb-3"></i>
+                        <p class="text-sm font-bold text-white">Parse 40-Page Blueprint</p>
+                    </div>
+
+                    <div class="data-line vertical w-px h-16 my-0"></div>
+
+                    <!-- Graph Branching -->
+                    <div class="w-full flex justify-between relative">
+                        <!-- Horizontal connector line -->
+                        <div class="absolute top-0 left-1/4 right-1/4 h-px data-line"></div>
+                        
+                        <!-- Left Node -->
+                        <div class="w-1/3 flex flex-col items-center">
+                            <div class="data-line vertical w-px h-10 my-0"></div>
+                            <div class="dag-node w-full bg-black/60 border border-blue-500/30 rounded-3xl p-6 text-center shadow-[0_0_30px_rgba(59,130,246,0.1)]">
+                                <p class="text-[10px] font-mono text-blue-400 mb-3 uppercase tracking-wider">Extraction</p>
+                                <p class="text-sm font-bold text-white mb-4">Core Objectives</p>
+                                <div class="inline-block px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 text-[10px] font-mono text-zinc-300">Routed to: <span class="text-white font-bold">GPT-4o</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Center Node -->
+                        <div class="w-1/3 flex flex-col items-center">
+                            <div class="data-line vertical w-px h-10 my-0"></div>
+                            <div class="dag-node w-full bg-black/60 border border-amber-500/30 rounded-3xl p-6 text-center shadow-[0_0_30px_rgba(245,158,11,0.1)] mx-4">
+                                <p class="text-[10px] font-mono text-amber-400 mb-3 uppercase tracking-wider">Logic</p>
+                                <p class="text-sm font-bold text-white mb-4">Risk Analysis</p>
+                                <div class="inline-block px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 text-[10px] font-mono text-zinc-300">Routed to: <span class="text-white font-bold">DeepSeek</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Right Node -->
+                        <div class="w-1/3 flex flex-col items-center">
+                            <div class="data-line vertical w-px h-10 my-0"></div>
+                            <div class="dag-node w-full bg-black/60 border border-emerald-500/30 rounded-3xl p-6 text-center shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+                                <p class="text-[10px] font-mono text-emerald-400 mb-3 uppercase tracking-wider">Formatting</p>
+                                <p class="text-sm font-bold text-white mb-4">Architecture Map</p>
+                                <div class="inline-block px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 text-[10px] font-mono text-zinc-300">Routed to: <span class="text-white font-bold">Gemini</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Merge Down -->
+                    <div class="w-full flex justify-between relative mt-0">
+                        <div class="w-1/3 flex justify-center"><div class="data-line vertical w-px h-16"></div></div>
+                        <div class="w-1/3 flex justify-center"><div class="data-line vertical w-px h-16"></div></div>
+                        <div class="w-1/3 flex justify-center"><div class="data-line vertical w-px h-16"></div></div>
+                        <div class="absolute bottom-0 left-1/4 right-1/4 h-px data-line"></div>
+                    </div>
+
+                    <div class="data-line vertical w-px h-10 my-0"></div>
+
+                    <!-- Final Synthesis -->
+                    <div class="dag-node w-80 bg-blue-600/20 border border-blue-500/50 rounded-3xl p-8 text-center z-10 backdrop-blur-md shadow-[0_0_50px_rgba(59,130,246,0.2)]">
+                        <i data-lucide="sparkles" class="w-8 h-8 text-blue-400 mx-auto mb-4"></i>
+                        <p class="text-base font-bold text-white mb-2">Final Arbitrator Node</p>
+                        <p class="text-[11px] text-blue-200/70 font-mono">Synthesizes all parallel outputs into a cohesive Markdown Executive Report.</p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: THE MESH API ADVANTAGE (Multi-Model) -->
+        <section class="py-24 px-6 max-w-[1400px] mx-auto w-full">
+            <div class="text-center mb-20 reveal">
+                <h2 class="text-4xl md:text-5xl font-bold tracking-apple text-white mb-4">The Multi-Model Edge.</h2>
+                <p class="text-xl text-white/50 max-w-2xl mx-auto font-medium">Routed centrally through Mesh API. Optimized instantly.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- GPT-4o -->
+                <div class="bento-card p-10 reveal hover:border-blue-500/50">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center font-bold text-2xl">O</div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-white tracking-apple">GPT-4o</h3>
+                            <p class="text-xs font-mono text-zinc-500">OpenAI</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-blue-400 uppercase tracking-widest font-bold mb-5">Architect Selects For:</p>
+                    <ul class="space-y-4 text-sm text-zinc-300">
+                        <li class="flex gap-3 items-center"><i data-lucide="check" class="w-5 h-5 text-blue-500 shrink-0"></i> High-accuracy structural extraction</li>
+                        <li class="flex gap-3 items-center"><i data-lucide="check" class="w-5 h-5 text-blue-500 shrink-0"></i> Complex formatting (JSON/Markdown)</li>
+                    </ul>
+                </div>
+
+                <!-- DeepSeek -->
+                <div class="bento-card p-10 reveal delay-100 hover:border-amber-500/50">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-14 h-14 bg-amber-500 text-black rounded-full flex items-center justify-center font-bold text-2xl">D</div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-white tracking-apple">DeepSeek V3</h3>
+                            <p class="text-xs font-mono text-zinc-500">DeepSeek</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-amber-400 uppercase tracking-widest font-bold mb-5">Architect Selects For:</p>
+                    <ul class="space-y-4 text-sm text-zinc-300">
+                        <li class="flex gap-3 items-center"><i data-lucide="check" class="w-5 h-5 text-amber-500 shrink-0"></i> Deep technical reasoning</li>
+                        <li class="flex gap-3 items-center"><i data-lucide="check" class="w-5 h-5 text-amber-500 shrink-0"></i> Mathematical or logical mapping</li>
+                    </ul>
+                </div>
+
+                <!-- Gemini -->
+                <div class="bento-card p-10 reveal delay-200 hover:border-emerald-500/50">
+                    <div class="flex items-center gap-4 mb-8">
+                        <div class="w-14 h-14 bg-emerald-500 text-black rounded-full flex items-center justify-center font-bold text-2xl">G</div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-white tracking-apple">Gemini 2.5</h3>
+                            <p class="text-xs font-mono text-zinc-500">Google</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-emerald-400 uppercase tracking-widest font-bold mb-5">Architect Selects For:</p>
+                    <ul class="space-y-4 text-sm text-zinc-300">
+                        <li class="flex gap-3 items-center"><i data-lucide="check" class="w-5 h-5 text-emerald-500 shrink-0"></i> Massive context windows</li>
+                        <li class="flex gap-3 items-center"><i data-lucide="check" class="w-5 h-5 text-emerald-500 shrink-0"></i> Rapid scanning and summarization</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: CURRENT MVP CAPABILITIES GRID -->
+        <section class="py-24 px-6 max-w-[1400px] mx-auto w-full">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-4xl md:text-5xl font-bold tracking-apple text-white mb-4">Core MVP Features.</h2>
+                <p class="text-xl text-white/50 max-w-2xl mx-auto font-medium">Ready for evaluation today.</p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <% 
+                const features = [
+                    { title: "Document Parsing", desc: "Intelligent PDF Extraction", icon: "file-search" },
+                    { title: "Workflow Gen", desc: "Automated DAG Building", icon: "git-merge" },
+                    { title: "Mesh Routing", desc: "Dynamic AI Selection", icon: "cpu" },
+                    { title: "Orchestration", desc: "Parallel Execution Engine", icon: "layers" },
+                    { title: "Synthesis", desc: "Executive Report Arbiter", icon: "file-badge" },
+                    { title: "Mission Control", desc: "Live Execution Telemetry", icon: "activity" },
+                    { title: "Analytics", desc: "Cost & Performance Tracking", icon: "bar-chart-3" },
+                    { title: "Immutable Ledger", desc: "Execution History Database", icon: "history" }
+                ];
+                %>
+                <% features.forEach((feat, i) => { %>
+                    <div class="bento-card p-8 reveal hover:bg-white/[0.04]" style="transition-delay: <%= (i % 4) * 100 %>ms">
+                        <i data-lucide="<%= feat.icon %>" class="w-8 h-8 text-white/80 mb-5"></i>
+                        <h4 class="text-base font-bold text-white mb-2"><%= feat.title %></h4>
+                        <p class="text-xs text-zinc-500"><%= feat.desc %></p>
+                    </div>
+                <% }) %>
+            </div>
+        </section>
+
+        <!-- SECTION 6: TECH STACK -->
+        <section class="py-16 px-6 text-center w-full reveal">
+            <p class="text-xs font-bold uppercase tracking-widest text-zinc-600 mb-8">Built Natively With</p>
+            <div class="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto">
+                <span class="px-6 py-3 rounded-full border border-white/10 bg-white/5 text-sm font-mono text-zinc-300 backdrop-blur-md">Node.js</span>
+                <span class="px-6 py-3 rounded-full border border-white/10 bg-white/5 text-sm font-mono text-zinc-300 backdrop-blur-md">Express</span>
+                <span class="px-6 py-3 rounded-full border border-blue-500/30 bg-blue-500/10 text-sm font-mono text-blue-300 backdrop-blur-md font-bold shadow-[0_0_20px_rgba(59,130,246,0.2)]">Mesh API</span>
+                <span class="px-6 py-3 rounded-full border border-white/10 bg-white/5 text-sm font-mono text-zinc-300 backdrop-blur-md">Tailwind CSS</span>
+                <span class="px-6 py-3 rounded-full border border-white/10 bg-white/5 text-sm font-mono text-zinc-300 backdrop-blur-md">EJS</span>
+                <span class="px-6 py-3 rounded-full border border-white/10 bg-white/5 text-sm font-mono text-zinc-300 backdrop-blur-md">MongoDB</span>
+            </div>
+        </section>
+
+        <!-- SECTION 7: FINAL MESSAGE -->
+        <section class="py-40 px-6 text-center w-full border-t border-white/5 mt-10 bg-gradient-to-b from-transparent to-[#0a0a0c]">
+            <div class="max-w-4xl mx-auto reveal">
+                <h2 class="text-4xl md:text-6xl font-bold tracking-apple-tight text-white mb-8 leading-tight">MeshFlow X is not a PDF summarizer.</h2>
+                <p class="text-white/50 text-xl md:text-2xl font-medium leading-relaxed mb-16">
+                    It is an <strong class="text-white">Intelligent AI Orchestration System</strong> that transforms static documents into structured workflows, dynamically routes tasks through the <strong class="text-blue-400">Mesh API</strong>, and produces transparent, executive-level intelligence.
+                </p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+                    <button onclick="window.location.href='/vision'" class="px-10 py-5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-full transition-all border border-white/10 w-full sm:w-auto flex items-center justify-center gap-3 backdrop-blur-xl">
+                        <i data-lucide="telescope" class="w-5 h-5"></i> View Future Vision
+                    </button>
+                    <button onclick="window.location.href='/'" class="px-10 py-5 bg-white text-black hover:scale-105 font-bold rounded-full transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)] w-full sm:w-auto">
+                        Return to Dashboard
+                    </button>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const reveals = document.querySelectorAll(".reveal");
+            const container = document.getElementById("scroll-container");
+
+            const revealOnScroll = () => {
+                const windowHeight = window.innerHeight;
+                reveals.forEach((el) => {
+                    const elementTop = el.getBoundingClientRect().top;
+                    const elementVisible = 100;
+                    if (elementTop < windowHeight - elementVisible) {
+                        el.classList.add("active");
+                    }
+                });
+            };
+
+            container.addEventListener("scroll", revealOnScroll);
+            revealOnScroll(); // Trigger once on load
+        });
+    </script>
+</body>
+</html>

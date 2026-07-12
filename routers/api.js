@@ -43,6 +43,7 @@ router.post('/validate-document', upload.single('file'), async (req, res) => {
             return res.status(400).json({ success: false, message: extractErr.message });
         }
         
+        // Ensure strictly typed string to prevent [object Object] leaks downstream
         if (!rawText || typeof rawText !== 'string' || rawText.trim() === "") {
             console.log(`[PIPELINE TRACE] FATAL: Extracted text is empty or invalid.`);
             return res.status(400).json({ success: false, message: "File contains no readable text." });
@@ -64,9 +65,15 @@ router.post('/validate-document', upload.single('file'), async (req, res) => {
         res.json({
             success: true, documentId: docId, fileName: originalname,
             fileSize: (size / (1024 * 1024)).toFixed(2) + " MB",
-            pages: Math.max(1, Math.ceil(rawText.length / 3000)),
-            words: rawText.split(/\s+/).length, chars: rawText.length,
-            mimeType: mimetype, readyForWorkflow: true
+            metadata: {
+                name: originalname,
+                pages: Math.max(1, Math.ceil(rawText.length / 3000)),
+                words: rawText.split(/\s+/).length, chars: rawText.length,
+                language: "English",
+                fileType: mimetype.split('/')[1]?.toUpperCase() || "UNKNOWN",
+                ocr: rawText.length > 5000 ? "Direct Parse Layer" : "Vision Matrix Layer"
+            },
+            readyForWorkflow: true
         });
     } catch (err) {
         console.error("[SYSTEM ERROR]", err);
@@ -89,11 +96,11 @@ router.post('/generate-workflow', upload.single('file'), async (req, res) => {
         
         const workflow = await generator.generateIntelligentWorkflow(prompt, req.file, cachedText);
         
-        // [CRITICAL FIX]: Shift cache pointer to workflowId, and DELETE the text from the frontend payload to save LocalStorage limit
+        // [CRITICAL FIX]: Shift cache pointer to workflowId, and DELETE the heavy text from the frontend payload
         if (workflow.workflowId) {
             const workflowCachePath = path.join(CACHE_DIR, `${workflow.workflowId}.txt`);
-            fs.writeFileSync(workflowCachePath, workflow.originalDocument || cachedText || "", 'utf8');
-            workflow.originalDocument = undefined; 
+            fs.writeFileSync(workflowCachePath, cachedText || workflow.originalDocument || "", 'utf8');
+            workflow.originalDocument = undefined; // Protect UI LocalStorage
         }
         
         res.json({ success: true, workflow });
@@ -118,6 +125,10 @@ router.post('/run', async (req, res, next) => {
         if (!payload.steps || payload.steps.length === 0) throw400("Invalid workflow format.");
         if (!originalDocument) throw400("DOCUMENT_NOT_FOUND: Execution context missing from disk. Upload required.");
         
+        // Boot state manager immediately so Mission Control connects to live telemetry instantly
+        const ctx = stateManager.getContext(workflowId) || stateManager.initialize(workflowId, payload.workflowName || "Automated Workflow", payload.steps);
+        ctx.addIntelligenceEvent("INFO", "Payload transferred securely. Booting MeshOS execution engine...");
+
         executor.runWorkflow({ 
             workflowId, 
             workflowName: payload.workflowName || "Automated Workflow", 
@@ -134,6 +145,7 @@ router.post('/advise', async (req, res, next) => {
     try {
         const payload = req.body || {};
         const nodes = Array.isArray(payload) ? payload : (payload.nodes || payload.steps);
+        if (!nodes || !Array.isArray(nodes)) return res.status(400).json({ success: false, error: "Valid nodes array required." });
         res.json({ success: true, advisorStats: await AdvisorService.analyzeWorkflow(nodes) });
     } catch (err) { next(err); }
 });
@@ -142,6 +154,7 @@ router.post('/optimize', async (req, res, next) => {
     try {
         const payload = req.body || {};
         const nodes = Array.isArray(payload) ? payload : (payload.nodes || payload.steps);
+        if (!nodes || !Array.isArray(nodes)) return res.status(400).json({ success: false, error: "Valid nodes array required." });
         res.json({ success: true, optimization: await AdvisorService.optimizeWorkflow(nodes) });
     } catch (err) { next(err); }
 });

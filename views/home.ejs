@@ -6,7 +6,6 @@
     <script src="/js/api-services.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
-
         :root {
             --bg-deep: #040405;
             --glass-bg: rgba(10, 10, 12, 0.4);
@@ -15,23 +14,21 @@
             --neon-purple: #8b5cf6;
             --neon-cyan: #06b6d4;
         }
-
         body {
             background-color: var(--bg-deep);
             color: #f4f4f5;
             font-family: 'Inter', sans-serif;
             -webkit-font-smoothing: antialiased;
         }
-
         .font-display { font-family: 'Space Grotesk', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
-
+        
         /* Premium Scrollbar */
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
-
+        
         /* Cinematic Background Elements */
         .mesh-grid {
             background-image: 
@@ -41,7 +38,6 @@
             mask-image: radial-gradient(ellipse 80% 80% at 50% -20%, black 20%, transparent 80%);
             -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% -20%, black 20%, transparent 80%);
         }
-
         .aurora-glow {
             position: absolute;
             width: 800px; height: 600px;
@@ -54,12 +50,11 @@
         }
         .aurora-1 { background: radial-gradient(circle, var(--neon-blue), transparent 70%); top: -200px; left: -200px; }
         .aurora-2 { background: radial-gradient(circle, var(--neon-purple), transparent 70%); top: 10%; right: -300px; animation-delay: -5s; }
-
         @keyframes breathe {
             0% { transform: scale(1) translate(0, 0); opacity: 0.15; }
             100% { transform: scale(1.1) translate(20px, 30px); opacity: 0.25; }
         }
-
+        
         /* Hero Text Gradient */
         .hero-text {
             background: linear-gradient(to right, #ffffff 20%, #a1a1aa 50%, var(--neon-blue) 80%, var(--neon-cyan) 100%);
@@ -70,7 +65,7 @@
             animation: text-shine 6s linear infinite;
         }
         @keyframes text-shine { to { background-position: 200% center; } }
-
+        
         /* Liquid Glass Panels */
         .glass-panel {
             background: var(--glass-bg);
@@ -80,7 +75,7 @@
             box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
         }
-
+        
         /* Glowing Action Button */
         .btn-glow {
             position: relative;
@@ -107,7 +102,7 @@
             border: 1px solid rgba(255,255,255,0.05);
         }
         .btn-glow:disabled::before { display: none; }
-
+        
         /* Floating Particles */
         .particle {
             position: absolute;
@@ -124,7 +119,7 @@
             80% { opacity: 0.6; }
             100% { transform: translateY(-100px) scale(1.2); opacity: 0; }
         }
-
+        
         /* DAG Pipeline Nodes */
         .pipeline-node {
             position: relative;
@@ -139,7 +134,6 @@
             border-color: var(--neon-blue);
             box-shadow: 0 0 30px rgba(59, 130, 246, 0.2), inset 0 0 20px rgba(59, 130, 246, 0.1);
         }
-
         .pipeline-edge {
             position: relative; flex: 1; height: 1px; background: rgba(255,255,255,0.1); overflow: hidden;
         }
@@ -152,7 +146,7 @@
             animation: flow-right 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
         @keyframes flow-right { to { transform: translateX(100%); } }
-
+        
         /* Textarea composer */
         .composer-box { transition: all 0.3s ease; }
         .composer-box:focus-within {
@@ -160,7 +154,7 @@
             box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3), 0 20px 40px rgba(0,0,0,0.5);
             background: rgba(10, 10, 12, 0.8);
         }
-
+        
         /* Status Dot Ping */
         .status-ping { position: relative; }
         .status-ping::after {
@@ -184,23 +178,30 @@
     <header class="relative z-[9999] w-full pt-8 pb-4 bg-transparent">
         <div class="max-w-7xl mx-auto px-6 lg:px-10 flex items-center justify-between">
             
-            <!-- Brand -->
+            <!-- Brand & Logo -->
             <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.reload()">
                 <div class="w-10 h-10 bg-black/50 border border-white/10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-colors relative overflow-hidden group">
                     <div class="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <i data-lucide="layers" class="w-5 h-5 text-zinc-200 group-hover:text-white transition-colors relative z-10"></i>
+                    <img src="/assets/mesh-logo.png" alt="MeshFlow X" class="w-6 h-6 object-contain relative z-10 filter drop-shadow-md">
                 </div>
                 <span class="text-white font-display font-bold tracking-tight text-xl drop-shadow-md">MeshFlow <span class="text-blue-500">X</span></span>
             </div>
             
             <!-- Clean Transparent Navigation -->
-            <nav class="hidden md:flex items-center gap-10">
+            <nav class="hidden lg:flex items-center gap-8">
                 <a href="/" class="text-white font-bold text-sm tracking-wide flex items-center gap-2 drop-shadow-md">
-                    <div class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]"></div> Core
+                    <div class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]"></div> Core Workspace
                 </a>
                 <a href="/builder" class="text-zinc-400 hover:text-white transition-colors text-sm font-medium tracking-wide">Architect</a>
                 <a href="/mission-control" class="text-zinc-400 hover:text-white transition-colors text-sm font-medium tracking-wide">Mission Control</a>
                 <a href="/history" class="text-zinc-400 hover:text-white transition-colors text-sm font-medium tracking-wide">Ledger</a>
+                
+                <div class="w-px h-4 bg-white/10 mx-2"></div>
+                
+                <a href="/how-it-works" class="text-zinc-400 hover:text-white transition-colors text-sm font-medium tracking-wide">How It Works</a>
+                <a href="/vision" class="text-zinc-400 hover:text-white transition-colors text-sm font-medium tracking-wide flex items-center gap-1.5">
+                    Vision 2030 <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i>
+                </a>
             </nav>
 
             <!-- Status Indicator -->
@@ -231,6 +232,16 @@
                 <p class="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto font-light leading-relaxed">
                     Drop a document, declare your objective, and MeshFlow OS instantly architects and executes the optimal LLM routing matrix.
                 </p>
+                
+                <!-- Premium Presentation CTAs for Judges -->
+                <div class="flex flex-wrap items-center justify-center gap-4 mt-10">
+                    <a href="/how-it-works" class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl transition-all flex items-center gap-2 backdrop-blur-md hover:scale-[1.02]">
+                        <i data-lucide="play-circle" class="w-4 h-4"></i> View MVP Capabilities
+                    </a>
+                    <a href="/vision" class="px-6 py-3 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-100 font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.2)] flex items-center gap-2 backdrop-blur-md hover:scale-[1.02]">
+                        <i data-lucide="telescope" class="w-4 h-4 text-purple-400"></i> Roadmap 2030
+                    </a>
+                </div>
             </section>
 
             <form id="master-generate-form" class="relative z-20">
@@ -242,13 +253,12 @@
                     <!-- Left: Premium Document Intake Terminal -->
                     <div class="lg:col-span-12 xl:col-span-5 h-full">
                         
-                        <!-- DROPZONE (REDESIGNED SAAS STYLE) -->
+                        <!-- DROPZONE -->
                         <div id="dropzone" class="relative h-full min-h-[420px] rounded-[28px] border-2 border-dashed border-white/10 hover:border-blue-500/40 bg-white/[0.01] hover:bg-blue-500/[0.02] transition-all duration-500 flex flex-col items-center justify-center text-center px-10 py-12 cursor-pointer group shadow-sm hover:shadow-[0_0_40px_rgba(59,130,246,0.1)] overflow-hidden">
                             
                             <div class="w-20 h-20 rounded-[20px] bg-white/[0.02] border border-white/5 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-blue-500/10 group-hover:border-blue-500/30 transition-all duration-500 shadow-inner">
                                 <i data-lucide="upload-cloud" class="w-8 h-8 text-zinc-500 group-hover:text-blue-400 transition-colors"></i>
                             </div>
-
                             <h2 class="text-2xl font-display font-bold text-white tracking-tight mb-3 group-hover:text-blue-50 transition-colors">Initialize Payload</h2>
                             <p class="text-sm text-zinc-500 mb-8 max-w-xs leading-relaxed">Drag and drop your enterprise documentation or browse to upload securely.</p>
 
@@ -263,7 +273,6 @@
                                 Browse Network
                             </button>
                             <input type="file" id="file-input" name="file" class="hidden" accept=".pdf,.docx,.csv,.txt,.xlsx,.md,.json" />
-
                             <p id="file-status" class="mt-5 text-[11px] font-mono font-bold uppercase tracking-widest text-blue-400 hidden"></p>
                         </div>
 
@@ -304,6 +313,7 @@
                                 System Awaiting Architecture <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
                             </div>
                         </div>
+
                     </div>
 
                     <!-- Right: Prompt Composer & Architecture Definition -->
@@ -395,10 +405,10 @@
                 </div>
                 
                 <div id="recent-workflows" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    <!-- Skeleton Loaders -->
-                    <div class="glass-panel rounded-[24px] h-[180px] animate-pulse bg-white/[0.01]"></div>
-                    <div class="glass-panel rounded-[24px] h-[180px] animate-pulse bg-white/[0.01] hidden md:block"></div>
-                    <div class="glass-panel rounded-[24px] h-[180px] animate-pulse bg-white/[0.01] hidden xl:block"></div>
+                    <!-- Skeleton Loaders (min-h-[200px] applied) -->
+                    <div class="glass-panel rounded-[24px] min-h-[200px] animate-pulse bg-white/[0.01]"></div>
+                    <div class="glass-panel rounded-[24px] min-h-[200px] animate-pulse bg-white/[0.01] hidden md:block"></div>
+                    <div class="glass-panel rounded-[24px] min-h-[200px] animate-pulse bg-white/[0.01] hidden xl:block"></div>
                 </div>
             </section>
 
@@ -532,7 +542,6 @@
     
     function autoGrow(){
       textarea.style.height = 'auto';
-      // Unlimited expansion logic
       textarea.style.height = textarea.scrollHeight + 'px';
     }
     textarea.addEventListener('input', autoGrow);
@@ -599,9 +608,8 @@
     masterForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (generateBtn.disabled) return;
-
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); 
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
 
         generateBtn.disabled = true;
         ctaLabel.innerHTML = 'Compiling Architecture...';
@@ -707,12 +715,12 @@
           const models = (run.modelsUsed || []).slice(0, 2);
           
           return `
-            <div class="glass-panel rounded-[24px] p-6 flex flex-col h-[180px] cursor-pointer group hover:border-white/20 hover:bg-white/[0.02] shadow-lg hover:shadow-2xl transition-all relative overflow-hidden" onclick="window.location.href='/mission-control?id=${run.executionId}'">
-              
+            <div class="glass-panel rounded-[24px] p-6 flex flex-col min-h-[200px] cursor-pointer group hover:border-white/20 hover:bg-white/[0.02] shadow-lg hover:shadow-2xl transition-all relative overflow-hidden" onclick="window.location.href='/mission-control?id=${run.executionId}'">
+                
               <!-- Hover Gradient -->
               <div class="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              
-              <div class="relative z-10 flex items-start justify-between mb-4">
+                
+              <div class="relative z-10 flex items-start justify-between mb-4 shrink-0">
                 <span class="inline-flex items-center gap-2 text-[10px] font-bold font-mono uppercase tracking-widest ${style.text} bg-black/40 px-2.5 py-1 rounded-md border border-white/5">
                   <span class="w-1.5 h-1.5 rounded-full ${style.dot}"></span>${run.status.toLowerCase()}
                 </span>
@@ -720,11 +728,11 @@
                   ${models.map(m => `<span class="font-mono text-[9px] px-2 py-1 rounded-md bg-black/60 border border-white/5 text-zinc-400 group-hover:text-zinc-300 transition-colors uppercase tracking-wider">${shortModel(m)}</span>`).join('')}
                 </div>
               </div>
-              
-              <h4 class="relative z-10 font-bold text-white mb-1 truncate tracking-tight text-lg group-hover:text-blue-400 transition-colors">${safeText(run.workflowName || 'Untitled matrix')}</h4>
-              <p class="relative z-10 text-xs text-zinc-500 font-mono mb-4 truncate">${run.executionId.split('-')[0]}...</p>
-              
-              <div class="relative z-10 flex items-center justify-between text-xs font-mono border-t border-white/5 pt-4 mt-auto">
+                
+              <h4 class="relative z-10 font-bold text-white mb-1 truncate tracking-tight text-lg group-hover:text-blue-400 transition-colors shrink-0">${safeText(run.workflowName || 'Untitled matrix')}</h4>
+              <p class="relative z-10 text-xs text-zinc-500 font-mono mb-4 truncate shrink-0">${run.executionId.split('-')[0]}...</p>
+                
+              <div class="relative z-10 flex items-center justify-between text-xs font-mono border-t border-white/5 pt-4 mt-auto shrink-0">
                 <div class="flex flex-col"><span class="text-[9px] uppercase tracking-widest text-zinc-600 mb-0.5">Cost</span><span class="text-white font-bold">$${(run.totalCost || 0).toFixed(4)}</span></div>
                 <div class="flex flex-col"><span class="text-[9px] uppercase tracking-widest text-zinc-600 mb-0.5">Time</span><span class="text-zinc-300">${((run.totalLatency || 0) / 1000).toFixed(1)}s</span></div>
                 <div class="flex flex-col text-right"><span class="text-[9px] uppercase tracking-widest text-zinc-600 mb-0.5">Age</span><span class="text-zinc-500">${timeAgo(run.startedAt)}</span></div>
